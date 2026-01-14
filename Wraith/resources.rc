@@ -1,0 +1,4 @@
+// resources.rc
+#include "resource.h"
+
+IDR_AI_MODEL RCDATA "dll_detector.onnx"

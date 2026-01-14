@@ -1,0 +1,18 @@
+
+// In dll_detector.cpp, update StartLoadLibraryDetectionAndWorker():
+
+void StartLoadLibraryDetectionAndWorker() {
+    // Initialize AI detector
+    g_aiDetector = std::make_unique<AIDllDetector>();
+
+    // Initialize from embedded resource (no external file needed!)
+    if (!g_aiDetector->InitializeFromResource()) {
+        MessageBoxA(NULL, 
+            "Failed to initialize AI model from embedded resource!",
+            "Anti-Cheat Warning", MB_OK | MB_ICONWARNING);
+        g_aiDetector.reset(); // Disable AI if model fails to load
+    }
+
+    ScanAlreadyLoadedModules();
+    InstallLoadLibraryHooks();
+}

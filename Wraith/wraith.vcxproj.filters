@@ -1,0 +1,109 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="ai_dll_detector.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="BitStream.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="Discord.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="dll_detector.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="dll_feature_extractor.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="memory.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="process_scanner.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="rpc_handlers.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="samp.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="secure.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="utils.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="webhook_sender.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="detours.h" />
+    <ClInclude Include="ai_dll_detector.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="BitStream.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="Discord.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="dll_feature_extractor.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="dll_fingerprints.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="framework.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="hwidwin.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="main.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="memory.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="RakClient.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="samp.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="secure.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="utils.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="webhook_sender.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>include</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="detours.lib" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="dll_detector.onnx" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{e5b71758-725e-4e5f-bdca-01f609a29226}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include">
+      <UniqueIdentifier>{23c4bd06-f448-4baf-84a2-c78801ddf307}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="resource.rc">
+      <Filter>include</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+</Project>
