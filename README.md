@@ -1,2 +1,2 @@
-# SAMPCAC Emulator
+# Wraith AntiCheat
  
