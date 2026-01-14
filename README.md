@@ -1,117 +1,122 @@
-# DLL Detection & Logging System (AI Enhanced)
+# AI-Powered DLL Detection & Logging System
 
-A robust anti-cheat solution for game servers that detects, logs, and reports unauthorized DLL injections in real time. This system combines traditional API hooking with Machine Learning analysis and Discord-integrated reporting.
+A high-performance anti-cheat solution designed for game environments (SAMP/RakClient) that detects and reports unauthorized DLL injections in real time. This system utilizes a C++ inference engine to run ONNX machine learning models against suspicious modules.
 
 ---
 
 ## Table of Contents
 
 - [Features](#features)
+- [Project Structure](#project-structure)
 - [How It Works](#how-it-works)
-- [AI & Machine Learning Pipeline](#ai--machine-learning-pipeline)
+- [AI Architecture](#ai-architecture)
 - [Discord Integration](#discord-integration)
 - [Installation](#installation)
 - [Configuration](#configuration)
-- [Architecture](#architecture)
 - [Security Features](#security-features)
-- [FAQ](#faq)
 - [License](#license)
 
 ---
 
 ## Features
 
-- **Real-time Detection:** Hooks `LoadLibraryA/W` and `LoadLibraryExA/W` to intercept injections.
-- **AI-Driven Analysis:** Utilizes a Python-trained model to analyze DLL features and behavioral signatures.
-- **Discord Logging:** Instant alerts sent via Webhooks (replacing legacy PHP backends).
-- **Pre-load Scanning:** Scans existing modules at startup using the AI inference engine.
-- **Hardware ID (HWID) Tracking:** Unique fingerprinting to identify and ban repeat offenders.
-- **Encrypted Payloads:** XOR + Base64 encryption for all data transmitted to Discord.
-- **Automatic Mitigation:** Instant process termination upon confirmed malicious detection.
+- **Machine Learning Inference:** Uses `dll_detector.onnx` to classify DLLs based on structural features.
+- **Real-time API Hooking:** Utilizes Microsoft Detours to intercept `LoadLibrary` calls.
+- **SAMP/RakClient Integration:** Tailored for multiplayer environments with specialized RPC handlers.
+- **Discord Webhook Reporting:** Encrypted, real-time logging sent directly to Discord channels.
+- **Memory & Process Scanning:** Scans active process memory to catch hidden or manual-mapped modules.
+- **Hardware Fingerprinting:** Unique HWID generation to track offenders across multiple accounts.
+
+---
+
+## Project Structure
+
+The project is organized into a modular C++ architecture:
+
+### Header Files (`/include`)
+- **`ai_dll_detector.h`**: Core logic for the AI inference engine.
+- **`dll_feature_extractor.h`**: Extracts PE headers and entropy for model input.
+- **`webhook_sender.h` & `Discord.h`**: Manages Discord API communication.
+- **`samp.h` & `RakClient.h`**: Integration headers for game-specific logic.
+- **`hwidwin.h`**: Hardware ID generation utilities.
+- **`secure.h`**: XOR encryption and security obfuscation.
+
+### Source Files (`/src`)
+- **`process_scanner.cpp`**: Logic for iterating through loaded modules and memory regions.
+- **`rpc_handlers.cpp`**: Manages remote procedure calls for server-client synchronization.
+- **`dll_detector.cpp`**: The primary detection loop and hooking implementation.
+- **`memory.cpp`**: Low-level memory manipulation and protection checks.
+
+### Resources & Assets
+- **`dll_detector.onnx`**: The trained Machine Learning model used for detection.
+- **`detours.lib`**: Microsoft Detours library for function hooking.
 
 ---
 
 ## How It Works
 
-### Detection Pipeline
+### 1. The Detection Pipeline
+* **Initialization:** Upon `main.cpp` execution, the system loads the `dll_detector.onnx` model and installs hooks on `LoadLibrary` using `detours.h`.
+* **Feature Extraction:** When a DLL is loaded, `dll_feature_extractor.cpp` analyzes the file's PE sections, import tables, and entropy.
+* **Inference:** The data is passed to `ai_dll_detector.cpp`, which runs the ONNX model to determine a maliciousness score.
+* **Action:** If the score exceeds the threshold, `webhook_sender.cpp` dispatches an encrypted report, and the game is terminated.
 
-1. **On Game Startup:**
-   - Performs a "Deep Scan" of all modules already loaded in memory.
-   - Extracts features from these DLLs and passes them through the **AI Inference Engine**.
-   - Installs active hooks on the Windows API set using the **MinHook** library.
-
-2. **During Runtime:**
-   - Every `LoadLibrary` attempt is intercepted.
-   - **Heuristic Check:** Evaluates whitelisted paths (`\Windows\`, `\Program Files\`) and suspicious keywords.
-   - **AI Check:** Analyzes the DLL structure for packed sections, suspicious imports, and entry point anomalies.
-
-3. **On Detection:**
-   - Gathers metadata: DLL name, full path, HWID, and timestamp.
-   - Encrypts the payload and transmits it directly to a designated **Discord Webhook**.
-   - Terminates the game process to maintain integrity.
-
+### 2. Networking & Logging
+The system uses `Discord.cpp` and `webhook_sender.cpp` to bypass the need for a traditional web server. All logs are:
+1.  Serialized with local metadata (Timestamp, HWID, DLL Name).
+2.  Posted to a Discord Webhook.
 ---
 
-## AI & Machine Learning Pipeline
+## AI Architecture
 
-The system moves beyond simple blacklisting by using a predictive model.
-
-* **Training (Python):** A dedicated Python script processes thousands of known clean and malicious DLLs. It extracts features like entropy, export table density, and section characteristics using `pefile`.
-* **Model Export:** The trained model is optimized and exported (via JSON or C++ header) to be used by the client-side detection engine.
-* **Feature Extraction:** The C++ client performs real-time feature extraction on unknown DLLs to determine a "Malicious Probability Score."
+The system utilizes a **Static Analysis** approach:
+* **Training:** Features were extracted from a dataset of 5,000+ clean and malicious DLLs using a Python-based pre-processor.
+* **Model:** The resulting model was exported to **ONNX (Open Neural Network Exchange)** format for high-performance C++ inference.
+* **Input Features:** PE Header metadata, Number of Exports, Section Entropy, and Import Density.
 
 ---
 
 ## Discord Integration
 
-The legacy PHP backend has been deprecated in favor of **Discord Webhooks**, offering real-time notifications without the need for a web server.
-
-- **Automated Alerts:** Detection logs appear instantly in your staff-only Discord channels.
-- **Rich Embeds:** Logs include formatted data, including the offender's HWID and the specific AI detection trigger.
-- **No Hosting Required:** Reduces infrastructure costs and setup complexity.
+The system uses `Discord.cpp` and `webhook_sender.cpp` to bypass the need for a traditional web server. All logs are:
+-   **Serialized** with local metadata (Timestamp, HWID, DLL Name).
+-   **Posted** to a Discord Webhook as a formatted Rich Embed.
 
 ---
 
 ## Installation
 
-### Client-Side (C++)
-**Prerequisites:**
-- Visual Studio 2022 (C++17 or higher recommended).
-- Windows SDK.
-- **MinHook** library.
+### Prerequisites
+- **Visual Studio 2022** (C++17 only).
+- **Windows SDK**.
+- **sampapi.lib**
+- **ONNX Runtime** (to load and execute `dll_detector.onnx`).
 
-**Core Files:**
-- `dll_detector.cpp/h`: Hooking logic and AI inference integration.
-- `logger.cpp/h`: Discord Webhook communication and XOR encryption.
-- `ai_model_data.h`: Exported features and weights from the Python trainer.
-- `hwidwin.h`: Hardware identification utilities.
-
-### AI Training (Python)
-**Prerequisites:**
-- Python 3.9+.
-- `scikit-learn`, `pefile`, and `pandas`.
+### Build Instructions
+1. Open the solution in Visual Studio.
+2. Ensure `detours.lib` is properly linked in the project properties.
+3. Set your Discord Webhook URL in `webhook_sender.h`.
+4. Build in **Release x86/x64** (depending on your game architecture).
 
 ---
 
 ## Configuration
 
-1.  **Discord Setup:** Create a Webhook in your Discord Server Settings and paste the URL into `logger.h`:
-    ```cpp
-    #define DISCORD_WEBHOOK_URL "YOUR_WEBHOOK_URL_HERE"
-    ```
-2.  **AI Threshold:** Adjust the sensitivity of the AI detection in `dll_detector.h` to prevent false positives.
-3.  **Whitelist:** Add custom game dependencies to the `whitelisted_modules` vector.
+To set up the system for your server:
+1.  **Discord:** Generate a Webhook URL and paste it into `webhook_sender.h`.
+2.  **Model:** Ensure `dll_detector.onnx` is in the same directory as your game executable.
+3.  **Thresholds:** Adjust detection sensitivity in `ai_dll_detector.h`.
 
 ---
 
 ## Security Features
 
-- **Anti-Debugging:** Basic checks to ensure the detector itself isn't being tampered with.
-- **Payload Obfuscation:** XOR encryption prevents users from intercepting and reading the logs being sent to Discord.
-- **Static Analysis:** The AI engine catches "Zero-Day" cheats that have been renamed or repacked to bypass string-based filters.
+- **String Obfuscation:** Critical strings and URLs are encrypted in `secure.h` to prevent static string analysis.
+- **Hook Protection:** Monitors the integrity of Detours hooks to ensure they aren't unhooked by the cheat.
+- **Encrypted Transmission:** All data sent via `webhook_sender` is XOR-masked to prevent packet sniffing.
 
 ---
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See the `LICENSE` file for details.
