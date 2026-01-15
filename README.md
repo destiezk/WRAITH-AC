@@ -1,6 +1,6 @@
 # Wraith AntiCheat Client built for GTA:SA:MP
 
-A high-performance anti-cheat solution designed for game environments (SAMP/RakClient) that detects and reports unauthorized DLL injections in real time. This system utilizes a C++ inference engine to run ONNX machine learning models against suspicious modules.
+A high-performance anti-cheat solution designed for game environments (SAMP/RakClient) that detects and reports unauthorized DLL injections and suspicious processes in real time. This system utilizes a C++ inference engine to run ONNX machine learning models against suspicious modules.
 
 ---
 
