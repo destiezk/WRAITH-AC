@@ -12,7 +12,7 @@ std::string global_message = "";
 uint32_t dwSAMPAddr = NULL;
 tRPC oRPC;
 
-#define AC_VERSION 102
+#define AC_VERSION 103
 #define VERSION_URL "https://anticheat.fsc-clan.eu/ac_version.txt"
 #define AC_CHALLENGE_RPC 245
 #define RPC_WRAITH_READ_MEMORY 200

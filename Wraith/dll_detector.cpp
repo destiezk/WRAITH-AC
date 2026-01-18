@@ -1,4 +1,4 @@
-﻿// dll_detector.cpp - WITH OGG.DLL WHITELIST
+﻿// dll_detector.cpp - Runtime DLL detection with AI analysis
 #include "main.h"
 #include "ai_dll_detector.h"
 #include <Psapi.h>
@@ -19,6 +19,8 @@ extern std::string GetHWID();
 // ============================
 // CONSOLE LOGGING
 // ============================
+
+// Create debug console window for logging
 static void InitializeConsole() {
     AllocConsole();
 
@@ -37,23 +39,29 @@ static void InitializeConsole() {
 // ============================
 // LOADLIBRARY HOOK SYSTEM WITH AI
 // ============================
+
 #define RPC_NEW_DLL_DETECTED 655910
 
+// Function pointer types for hooked functions
 typedef HMODULE(WINAPI* tLoadLibraryA)(LPCSTR);
 typedef HMODULE(WINAPI* tLoadLibraryW)(LPCWSTR);
 typedef HMODULE(WINAPI* tLoadLibraryExA)(LPCSTR, HANDLE, DWORD);
 typedef HMODULE(WINAPI* tLoadLibraryExW)(LPCWSTR, HANDLE, DWORD);
 
+// Original function pointers
 static tLoadLibraryA oLoadLibraryA = nullptr;
 static tLoadLibraryW oLoadLibraryW = nullptr;
 static tLoadLibraryExA oLoadLibraryExA = nullptr;
 static tLoadLibraryExW oLoadLibraryExW = nullptr;
 
+// Thread-safe tracking of seen DLLs
 static std::mutex g_seenMutex;
 static std::unordered_set<std::string> g_seenDlls;
 
+// Global AI detector instance
 static std::unique_ptr<AIDllDetector> g_aiDetector;
 
+// Check if path is in system directories (safe)
 static bool IsSafePath(const std::string& fullPath) {
     std::string lower = fullPath;
     std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
@@ -68,6 +76,7 @@ static bool IsSafePath(const std::string& fullPath) {
     return false;
 }
 
+// Check if file is the game executable
 static bool IsGameExecutable(const std::string& fullPath) {
     std::string lower = fullPath;
     std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
@@ -78,28 +87,27 @@ static bool IsGameExecutable(const std::string& fullPath) {
     return false;
 }
 
-// *** NEW: Check if DLL is a known legitimate game file ***
+// Whitelist of known legitimate game DLLs
 static bool IsKnownGameDll(const std::string& dllNameLower) {
-    // Known legitimate game/SAMP DLLs
     if (dllNameLower.find("samp") != std::string::npos) return true;
     if (dllNameLower.find("bass") != std::string::npos) return true;
     if (dllNameLower.find("vorbis") != std::string::npos) return true;
-    if (dllNameLower.find("ogg") != std::string::npos) return true;  // *** ADDED ***
+    if (dllNameLower.find("ogg") != std::string::npos) return true;
     if (dllNameLower.find("eax") != std::string::npos) return true;
     if (dllNameLower.find("modloader") != std::string::npos) return true;
     if (dllNameLower.find("wraith-ac") != std::string::npos) return true;
     if (dllNameLower.find("onnxruntime") != std::string::npos) return true;
-    //if (dllNameLower.find("sensfix") != std::string::npos) return true;
     if (dllNameLower.find("std.") != std::string::npos) return true;
 
     return false;
 }
 
+// Send DLL features to webhook for logging/analysis
 static void SendDllFeaturesToWebhook(const std::string& dllPath) {
     DllFeatureExtractor extractor;
     DllFeatures features = extractor.ExtractFeatures(dllPath);
 
-    // Extract just the filename
+    // Extract filename only
     size_t lastSlash = dllPath.find_last_of("\\/");
     std::string dllName = (lastSlash != std::string::npos) ? dllPath.substr(lastSlash + 1) : dllPath;
 
@@ -111,11 +119,10 @@ static void SendDllFeaturesToWebhook(const std::string& dllPath) {
     char entropyStr[32];
     sprintf_s(entropyStr, "%.5g", features.entropy);
 
-    // First message - opening with filename
+    // Build feature structure message
     std::string FASZ = "{\n";
     FASZ += "    \"" + dllName + "\"\",\n";
 
-    // Second message - features and closing
     std::string structFormat;
     structFormat += "    " + std::to_string((int)features.fileSize) + ".0f,\n";
     structFormat += "    " + std::to_string((int)features.numSections) + ".0f,\n";
@@ -130,16 +137,14 @@ static void SendDllFeaturesToWebhook(const std::string& dllPath) {
     structFormat += "    0.01f\n";
     structFormat += "},";
 
-    // Send both messages
+    // Send messages to webhook
     SendWebhookAsync2(FASZ.c_str());
     Sleep(100);
     SendWebhookAsync2(structFormat.c_str());
 }
 
-
-
+// Scan modules already loaded before anti-cheat started
 void ScanAlreadyLoadedModules() {
-
     std::cout << "\n========================================" << std::endl;
     std::cout << "  SCANNING PRE-LOADED MODULES (AI)...  " << std::endl;
     std::cout << "========================================\n" << std::endl;
@@ -164,19 +169,19 @@ void ScanAlreadyLoadedModules() {
                     std::string modPathLower = modPathStr;
                     std::transform(modPathLower.begin(), modPathLower.end(), modPathLower.begin(), ::tolower);
 
-                    // Whitelist game executable
+                    // Skip game executable
                     if (IsGameExecutable(modPathLower)) {
                         std::cout << "[OK - GAME EXE] " << modNameStr << std::endl;
                         continue;
                     }
 
-                    // Skip safe paths
+                    // Skip system paths
                     if (IsSafePath(modPathLower)) {
                         std::cout << "[OK - SAFE PATH] " << modNameStr << std::endl;
                         continue;
                     }
 
-                    // Check game directory
+                    // Check if in game directory
                     char exePath[MAX_PATH];
                     GetModuleFileNameA(NULL, exePath, MAX_PATH);
                     std::string exeDir(exePath);
@@ -187,7 +192,7 @@ void ScanAlreadyLoadedModules() {
                         std::string modNameLower = modNameStr;
                         std::transform(modNameLower.begin(), modNameLower.end(), modNameLower.begin(), ::tolower);
 
-                        // *** Use the new helper function ***
+                        // Check whitelist
                         if (IsKnownGameDll(modNameLower)) {
                             std::cout << "[OK - GAME FILE] " << modNameStr << std::endl;
                             continue;
@@ -196,6 +201,7 @@ void ScanAlreadyLoadedModules() {
                         std::cout << "[CHECKING AI] Unknown game folder DLL: " << modNameStr << std::endl;
                     }
 
+                    // Run AI detection
                     if (g_aiDetector && g_aiDetector->IsSuspicious(modPathStr)) {
                         float confidence = g_aiDetector->GetLastConfidence();
 
@@ -206,24 +212,21 @@ void ScanAlreadyLoadedModules() {
 
                         std::string msg = "Wraith AI detected suspicious DLL!\n\n";
                         msg += "DLL: " + modNameStr + "\n";
-                        //msg += "Path: " + modPathStr + "\n";
-                        //msg += "AI Confidence: " + std::to_string((int)(confidence * 100)) + "%\n\n";
-                        //msg += "The game will now close.";
 
                         std::string pcName = GetComputerName();
                         std::string hwid = GetHWID();
 
-                        // Build message with line breaks
-                        //std::string message = "**"+GetPlayerName()+"**" + " (" + hwid + " | " + pcName + "): " + modNameStr + " detected! | Path: " + modPathStr + " | Confidence: " + std::to_string((int)(confidence * 100));
+                        // Send to webhook
                         SendDllFeaturesToWebhook(modNameStr);
-                        SendWebhookAsync("**" + GetPlayerName() + " (" + hwid + ")" + "** has loaded a suspicious dll before Wraith-AC, terminating game.\n**DLL:** `"+modNameStr.c_str()+"` | **Path:** `"+modPathStr.c_str()+"` | **Confidence:** `"+ std::to_string((int)(confidence * 100))+"%`");
+                        SendWebhookAsync("**" + GetPlayerName() + " (" + hwid + ")" + "** has loaded a suspicious dll before Wraith-AC, terminating game.\n**DLL:** `" + modNameStr.c_str() + "` | **Path:** `" + modPathStr.c_str() + "` | **Confidence:** `" + std::to_string((int)(confidence * 100)) + "%`");
 
+                        // Delayed termination
                         std::thread([]() {
-                            Sleep(5000);  // 5 seconds to read the message
+                            Sleep(5000);
                             TerminateProcess(GetCurrentProcess(), 1);
                             }).detach();
 
-                        SetForegroundWindow(GetDesktopWindow());  // Force focus switch
+                        SetForegroundWindow(GetDesktopWindow());
                         MessageBoxA(NULL, msg.c_str(), "Wraith AI - Detection", MB_OK | MB_ICONERROR | MB_SYSTEMMODAL | MB_SETFOREGROUND);
                         return;
                     }
@@ -240,6 +243,7 @@ void ScanAlreadyLoadedModules() {
     std::cout << "\n[OK] Pre-loaded module scan complete. No suspicious DLLs found.\n" << std::endl;
 }
 
+// Extract filename from ANSI path
 static std::string FilenameFromAnsiPath(const char* pathA) {
     if (!pathA) return std::string();
     try {
@@ -251,6 +255,7 @@ static std::string FilenameFromAnsiPath(const char* pathA) {
     }
 }
 
+// Extract filename from wide path
 static std::string FilenameFromWidePath(const wchar_t* pathW) {
     if (!pathW) return std::string();
     try {
@@ -263,20 +268,24 @@ static std::string FilenameFromWidePath(const wchar_t* pathW) {
     }
 }
 
+// Get full path from ANSI string
 static std::string GetFullPathFromAnsi(const char* pathA) {
     if (!pathA) return std::string();
     return std::string(pathA);
 }
 
+// Get full path from wide string
 static std::string GetFullPathFromWide(const wchar_t* pathW) {
     if (!pathW) return std::string();
     return WideToString(pathW);
 }
 
+// Check if RPC is available
 static bool CanSendRPC() {
     return (dwSAMPAddr != 0 && oRPC != nullptr);
 }
 
+// Send DLL name to server via RPC
 static void SendDllNameToServer_Safe(const std::string& dllName) {
     try {
         if (!CanSendRPC()) return;
@@ -294,6 +303,7 @@ static void SendDllNameToServer_Safe(const std::string& dllName) {
     catch (...) {}
 }
 
+// Track if DLL has been seen before (prevents duplicate processing)
 static bool MarkDllSeenIfNew(const std::string& filename) {
     std::string lower = filename;
     std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
@@ -304,6 +314,7 @@ static bool MarkDllSeenIfNew(const std::string& filename) {
     return true;
 }
 
+// Terminate process when suspicious DLL detected
 static void TerminateOnIllegalDll(const std::string& dllName, const std::string& fullPath, float aiConfidence) {
     std::cout << "\n*** [TERMINATING] ***" << std::endl;
     std::cout << "DLL: " << dllName << std::endl;
@@ -313,23 +324,22 @@ static void TerminateOnIllegalDll(const std::string& dllName, const std::string&
     SendDllFeaturesToWebhook(fullPath);
 
     std::string message = "Wraith AI detected suspicious DLL!\n\n";
-    //message += "DLL Name: " + dllName + "\n";
-    //message += "Full Path: " + fullPath + "\n";
-    //message += "AI Confidence: " + std::to_string((int)(aiConfidence * 100)) + "%\n\n";
     message += "The game will now close.";
 
     MessageBoxA(NULL, message.c_str(), "Wraith AI - Detection", MB_OK | MB_ICONERROR | MB_SYSTEMMODAL | MB_TOPMOST);
     SendDllNameToServer_Safe(dllName);
 
+    // Delayed termination thread
     std::thread([]() {
-        Sleep(5000);  // 5 seconds to read the message
+        Sleep(5000);
         TerminateProcess(GetCurrentProcess(), 1);
         }).detach();
 
-    SetForegroundWindow(GetDesktopWindow());  // Force focus switch
+    SetForegroundWindow(GetDesktopWindow());
     MessageBoxA(NULL, message.c_str(), "Wraith AI - Detection", MB_OK | MB_ICONERROR | MB_SYSTEMMODAL | MB_SETFOREGROUND);
 }
 
+// Hooked LoadLibraryA - intercepts DLL loads
 HMODULE WINAPI hkLoadLibraryA(LPCSTR lpLibFileName) {
     if (lpLibFileName) {
         try {
@@ -342,17 +352,19 @@ HMODULE WINAPI hkLoadLibraryA(LPCSTR lpLibFileName) {
                 std::string fullPathLower = fullPath;
                 std::transform(fullPathLower.begin(), fullPathLower.end(), fullPathLower.begin(), ::tolower);
 
+                // Allow game executable
                 if (IsGameExecutable(fullPathLower)) {
                     std::cout << "  -> Game executable, allowing" << std::endl;
                     return oLoadLibraryA ? oLoadLibraryA(lpLibFileName) : LoadLibraryA(lpLibFileName);
                 }
 
+                // Allow safe paths
                 if (IsSafePath(fullPath)) {
                     std::cout << "  -> Safe path, allowing" << std::endl;
                     return oLoadLibraryA ? oLoadLibraryA(lpLibFileName) : LoadLibraryA(lpLibFileName);
                 }
 
-                // *** Check if it's a known game DLL ***
+                // Check whitelist
                 std::string filenameLower = filename;
                 std::transform(filenameLower.begin(), filenameLower.end(), filenameLower.begin(), ::tolower);
 
@@ -361,6 +373,7 @@ HMODULE WINAPI hkLoadLibraryA(LPCSTR lpLibFileName) {
                     return oLoadLibraryA ? oLoadLibraryA(lpLibFileName) : LoadLibraryA(lpLibFileName);
                 }
 
+                // Check with AI
                 std::cout << "  -> Checking with AI..." << std::endl;
 
                 if (g_aiDetector && g_aiDetector->IsSuspicious(fullPath)) {
@@ -385,6 +398,7 @@ HMODULE WINAPI hkLoadLibraryA(LPCSTR lpLibFileName) {
     return oLoadLibraryA ? oLoadLibraryA(lpLibFileName) : LoadLibraryA(lpLibFileName);
 }
 
+// Hooked LoadLibraryW - wide character version
 HMODULE WINAPI hkLoadLibraryW(LPCWSTR lpLibFileName) {
     if (lpLibFileName) {
         try {
@@ -439,6 +453,7 @@ HMODULE WINAPI hkLoadLibraryW(LPCWSTR lpLibFileName) {
     return oLoadLibraryW ? oLoadLibraryW(lpLibFileName) : LoadLibraryW(lpLibFileName);
 }
 
+// Hooked LoadLibraryExA - extended version
 HMODULE WINAPI hkLoadLibraryExA(LPCSTR lpLibFileName, HANDLE hFile, DWORD dwFlags) {
     if (lpLibFileName) {
         try {
@@ -488,6 +503,7 @@ HMODULE WINAPI hkLoadLibraryExA(LPCSTR lpLibFileName, HANDLE hFile, DWORD dwFlag
         : LoadLibraryExA(lpLibFileName, hFile, dwFlags);
 }
 
+// Hooked LoadLibraryExW - extended wide character version
 HMODULE WINAPI hkLoadLibraryExW(LPCWSTR lpLibFileName, HANDLE hFile, DWORD dwFlags) {
     if (lpLibFileName) {
         try {
@@ -537,6 +553,7 @@ HMODULE WINAPI hkLoadLibraryExW(LPCWSTR lpLibFileName, HANDLE hFile, DWORD dwFla
         : LoadLibraryExW(lpLibFileName, hFile, dwFlags);
 }
 
+// Install hooks on all LoadLibrary variants
 void InstallLoadLibraryHooks() {
     std::cout << "\n[INIT] Installing LoadLibrary hooks..." << std::endl;
 
@@ -557,13 +574,13 @@ void InstallLoadLibraryHooks() {
     std::cout << "[INIT] Hooks installed successfully!" << std::endl;
 }
 
+// Initialize anti-cheat system
 void StartLoadLibraryDetectionAndWorker() {
-    //InitializeConsole();
-
     std::cout << "\n[INIT] Starting Anti-Cheat AI..." << std::endl;
 
     g_aiDetector = std::make_unique<AIDllDetector>();
 
+    // Load AI model
     if (!g_aiDetector->InitializeFromResource()) {
         std::cout << "[ERROR] Failed to initialize AI model!" << std::endl;
         MessageBoxA(NULL,
@@ -577,23 +594,30 @@ void StartLoadLibraryDetectionAndWorker() {
         std::cout << "[INIT] AI model initialized successfully!" << std::endl;
     }
 
+    // Scan pre-loaded modules
     ScanAlreadyLoadedModules();
+
+    // Install hooks
     InstallLoadLibraryHooks();
 
     std::cout << "\n[READY] Anti-Cheat AI is now active!\n" << std::endl;
 }
 
+// Shutdown anti-cheat system
 void StopLoadLibraryDetectionAndWorker() {
     std::cout << "\n[SHUTDOWN] Stopping Anti-Cheat..." << std::endl;
 
+    // Disable hooks
     MH_DisableHook(&LoadLibraryA);
     MH_DisableHook(&LoadLibraryW);
     MH_DisableHook(&LoadLibraryExA);
     MH_DisableHook(&LoadLibraryExW);
 
+    // Clear tracked DLLs
     std::lock_guard<std::mutex> lock(g_seenMutex);
     g_seenDlls.clear();
 
+    // Destroy AI detector
     g_aiDetector.reset();
 
     std::cout << "[SHUTDOWN] Anti-Cheat stopped" << std::endl;

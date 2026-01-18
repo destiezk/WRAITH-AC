@@ -1,29 +1,29 @@
-// dll_fingerprints.h - SECURE FINGERPRINT WHITELIST
+// dll_fingerprints.h - Whitelist of trusted DLL signatures
 #pragma once
 #include "main.h"
 #include <string>
 #include <vector>
 #include <cmath>
 
-// Structure to hold DLL fingerprint
+// Fingerprint signature for a known trusted DLL
 struct DllFingerprint {
-    std::string name;           // Filename (case-insensitive)
-    float fileSize;
-    float numSections;
-    float numImports;
-    float numExports;
-    float entryPointRVA;
-    float imageBase;
-    float hasDebugInfo;
-    float hasTLS;
-    float suspiciousAPICount;
-    float entropy;
-    float tolerance;            // How much deviation to allow (e.g., 0.01 = 1%)
+    std::string name;           // DLL filename (case-insensitive)
+    float fileSize;             // File size in bytes
+    float numSections;          // Number of PE sections
+    float numImports;           // Number of imported functions
+    float numExports;           // Number of exported functions
+    float entryPointRVA;        // Entry point relative virtual address
+    float imageBase;            // Preferred load address
+    float hasDebugInfo;         // Debug info present (1.0 = yes, 0.0 = no)
+    float hasTLS;               // Thread local storage present (1.0 = yes, 0.0 = no)
+    float suspiciousAPICount;   // Count of potentially suspicious APIs
+    float entropy;              // Shannon entropy value
+    float tolerance;            // Allowed deviation percentage (e.g., 0.01 = 1%)
 };
 
-// Whitelist of known good DLLs with their exact signatures
+// Whitelist of verified safe DLLs with exact signatures
 static const std::vector<DllFingerprint> TRUSTED_DLL_FINGERPRINTS = {
-    // sensfix.asi
+    // sensfix.asi - Sensitivity fix mod
     {
         "sensfix.asi",
         158720.0f,      // fileSize
@@ -39,7 +39,7 @@ static const std::vector<DllFingerprint> TRUSTED_DLL_FINGERPRINTS = {
         0.01f           // 1% tolerance
     },
 
-    // vorbisfile.dll
+    // vorbisfile.dll - Audio codec library
     {
         "vorbisfile.dll",
         53760.0f,
@@ -55,7 +55,7 @@ static const std::vector<DllFingerprint> TRUSTED_DLL_FINGERPRINTS = {
         0.01f
     },
 
-    // Y-Axis_Sensitivity_Fix_gta3vcsa.asi.dll
+    // Y-Axis_Sensitivity_Fix_gta3vcsa.asi - Y-axis sensitivity fix
     {
         "Y-Axis_Sensitivity_Fix_gta3vcsa.asi",
         71680.0f,
@@ -71,6 +71,7 @@ static const std::vector<DllFingerprint> TRUSTED_DLL_FINGERPRINTS = {
         0.01f
     },
 
+    // RefreshRateFixByDarkP1xel32.asi - Refresh rate fix (lowercase)
     {
         "RefreshRateFixByDarkP1xel32.asi",
         75264.0f,
@@ -86,6 +87,7 @@ static const std::vector<DllFingerprint> TRUSTED_DLL_FINGERPRINTS = {
         0.01f
     },
 
+    // RefreshRateFixByDarkP1xel32.ASI - Refresh rate fix (uppercase)
     {
         "RefreshRateFixByDarkP1xel32.ASI",
         75264.0f,
@@ -101,6 +103,7 @@ static const std::vector<DllFingerprint> TRUSTED_DLL_FINGERPRINTS = {
         0.01f
     },
 
+    // FramerateVigilante.SA.asi - Framerate fix
     {
        "FramerateVigilante.SA.asi",
         255488.0f,
@@ -116,6 +119,7 @@ static const std::vector<DllFingerprint> TRUSTED_DLL_FINGERPRINTS = {
         0.01f
     },
 
+    // sensfix XY.asi - XY sensitivity fix
     {
         "sensfix XY.asi",
         71680.0f,
@@ -131,6 +135,7 @@ static const std::vector<DllFingerprint> TRUSTED_DLL_FINGERPRINTS = {
         0.01f
     },
 
+    // PreciseFramerateLimiter.asi - Frame limiter
     {
         "PreciseFramerateLimiter.asi",
         212992.0f,
@@ -146,6 +151,7 @@ static const std::vector<DllFingerprint> TRUSTED_DLL_FINGERPRINTS = {
         0.01f
     },
 
+    // SilentPatchSA.asi - Community patch
     {
         "SilentPatchSA.asi",
         282624.0f,
@@ -159,17 +165,17 @@ static const std::vector<DllFingerprint> TRUSTED_DLL_FINGERPRINTS = {
         3.0f,
         6.10715,
         0.01f
-    },
-
-    // Add more trusted DLLs here with their exact features
+    }
 };
 
-// Check if features match a fingerprint within tolerance
+// Check if a feature value matches expected value within tolerance
 inline bool MatchesFingerprint(const DllFeatures& features, const DllFingerprint& fp) {
+    // Helper: check if value is within tolerance range
     auto withinTolerance = [](float value, float expected, float tolerance) {
         return std::abs(value - expected) <= (expected * tolerance);
         };
 
+    // Compare all features - must match within tolerance
     return withinTolerance(features.fileSize, fp.fileSize, fp.tolerance) &&
         withinTolerance(features.numSections, fp.numSections, fp.tolerance) &&
         withinTolerance(features.numImports, fp.numImports, fp.tolerance) &&
@@ -182,21 +188,24 @@ inline bool MatchesFingerprint(const DllFeatures& features, const DllFingerprint
         withinTolerance(features.entropy, fp.entropy, fp.tolerance);
 }
 
-// Check if a DLL is trusted by fingerprint
+// Check if a DLL matches any trusted fingerprint
 inline bool IsTrustedByFingerprint(const std::string& filename, const DllFeatures& features) {
+    // Convert filename to lowercase for comparison
     std::string lowerName = filename;
     std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
 
+    // Check against all trusted fingerprints
     for (const auto& fp : TRUSTED_DLL_FINGERPRINTS) {
         std::string fpNameLower = fp.name;
         std::transform(fpNameLower.begin(), fpNameLower.end(), fpNameLower.begin(), ::tolower);
 
+        // If filename matches, verify fingerprint
         if (lowerName.find(fpNameLower) != std::string::npos) {
             if (MatchesFingerprint(features, fp)) {
-                return true;  // Exact match!
+                return true;  // Verified trusted DLL
             }
         }
     }
 
-    return false;  // No fingerprint match
+    return false;  // No matching fingerprint found
 }

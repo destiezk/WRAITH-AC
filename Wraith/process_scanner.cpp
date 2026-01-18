@@ -1,3 +1,4 @@
+// Process scanner - Monitors running processes for suspicious activity
 #include "main.h"
 #include <TlHelp32.h>
 #include <Psapi.h>
@@ -13,11 +14,12 @@ extern std::string GetHWID();
 
 typedef void (WINAPI* QFPIN)(HANDLE, DWORD, LPWSTR, PDWORD);
 
+// Check if RPC system is ready
 static bool CanSendRPC() {
     return (dwSAMPAddr != 0 && oRPC != nullptr);
 }
 
-// RPC identifier to send to server
+// RPC identifier for suspicious process reports
 #define RPC_SUSPICIOUS_PROCESS 655911
 
 class CProcessScanner {
@@ -25,10 +27,11 @@ private:
     std::mutex scanMutex;
     bool isRunning;
     std::thread scanThread;
-    std::unordered_set<std::wstring> whitelistedProcesses;
-    std::unordered_set<std::wstring> scannedProcesses;
+    std::unordered_set<std::wstring> whitelistedProcesses;  // Known safe processes
+    std::unordered_set<std::wstring> scannedProcesses;      // Already checked this session
     bool consoleAllocated;
 
+    // Populate whitelist with legitimate system and application processes
     void InitializeWhitelist() {
         // Windows System Processes
         whitelistedProcesses.insert(L"system");
@@ -78,7 +81,7 @@ private:
         whitelistedProcesses.insert(L"msedge.exe");
         whitelistedProcesses.insert(L"opera.exe");
         whitelistedProcesses.insert(L"brave.exe");
-		whitelistedProcesses.insert(L"nvoawrappercache.exe");
+        whitelistedProcesses.insert(L"nvoawrappercache.exe");
 
         // Communication Apps
         whitelistedProcesses.insert(L"discord.exe");
@@ -119,15 +122,16 @@ private:
         whitelistedProcesses.insert(L"googledrivesync.exe");
         whitelistedProcesses.insert(L"backup and sync.exe");
 
-        // Development Tools (optional)
+        // Development Tools
         whitelistedProcesses.insert(L"code.exe");
         whitelistedProcesses.insert(L"devenv.exe");
 
-        // Your Game
+        // Game Executables
         whitelistedProcesses.insert(L"gta_sa.exe");
         whitelistedProcesses.insert(L"samp.exe");
     }
 
+    // Log colored messages to console
     void LogToConsole(const std::string& message, const std::string& color = "") {
         HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 
@@ -151,6 +155,7 @@ private:
         SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
     }
 
+    // Check if process name is whitelisted
     bool IsWhitelistedProcess(const std::wstring& processName) {
         std::wstring lower = processName;
         std::transform(lower.begin(), lower.end(), lower.begin(), ::towlower);
@@ -158,6 +163,7 @@ private:
         return whitelistedProcesses.find(lower) != whitelistedProcesses.end();
     }
 
+    // Check if process is in a legitimate system/program directory
     bool IsLegitimateLocation(const std::wstring& path) {
         std::wstring lower = path;
         std::transform(lower.begin(), lower.end(), lower.begin(), ::towlower);
@@ -172,21 +178,20 @@ private:
         if (lower.find(L"\\program files\\") != std::wstring::npos) return true;
         if (lower.find(L"\\program files (x86)\\") != std::wstring::npos) return true;
 
-        // Steam and Game Platforms
+        // Gaming Platforms
         if (lower.find(L"\\steam\\") != std::wstring::npos) return true;
         if (lower.find(L"\\steamapps\\") != std::wstring::npos) return true;
         if (lower.find(L"\\epic games\\") != std::wstring::npos) return true;
         if (lower.find(L"\\origin games\\") != std::wstring::npos) return true;
         if (lower.find(L"\\riot games\\") != std::wstring::npos) return true;
 
-		// Common AppData Locations
+        // Common AppData Locations
         if (lower.find(L"\\appdata\\local\\discord\\") != std::wstring::npos) return true;
         if (lower.find(L"\\appdata\\local\\mozilla firefox\\") != std::wstring::npos) return true;
         if (lower.find(L"\\appdata\\local\\programs\\opera gx\\") != std::wstring::npos) return true;
         if (lower.find(L"\\appdata\\local\\programs\\opera\\") != std::wstring::npos) return true;
 
-
-        // Cloud Storage AppData Locations - ADDED!
+        // Cloud Storage
         if (lower.find(L"\\microsoft\\onedrive\\") != std::wstring::npos) return true;
         if (lower.find(L"\\appdata\\local\\microsoft\\onedrive\\") != std::wstring::npos) return true;
         if (lower.find(L"\\dropbox\\") != std::wstring::npos) return true;
@@ -195,7 +200,7 @@ private:
         return false;
     }
 
-
+    // Check if process name contains suspicious keywords
     bool IsSuspiciousName(const std::wstring& processName) {
         std::wstring lower = processName;
         std::transform(lower.begin(), lower.end(), lower.begin(), ::towlower);
@@ -210,6 +215,7 @@ private:
         return false;
     }
 
+    // Enable debug privileges for process access
     void AdjustTokens(HANDLE process) {
         TOKEN_PRIVILEGES token_privileges;
         DWORD dwSize;
@@ -229,12 +235,14 @@ private:
         }
     }
 
+    // Verify that process file exists on disk
     bool DoesFileExist(const std::wstring& path) {
         DWORD attrib = GetFileAttributesW(path.c_str());
         return (attrib != INVALID_FILE_ATTRIBUTES &&
             !(attrib & FILE_ATTRIBUTE_DIRECTORY));
     }
 
+    // Send suspicious process report to server via RPC
     void ReportSuspiciousProcess(const std::wstring& path) {
         if (!CanSendRPC()) return;
 
@@ -249,6 +257,7 @@ private:
         bsSend.ResetWritePointer();
     }
 
+    // Terminate game with error message
     void TerminateWithMessage(const std::wstring& processPath, const std::string& reason) {
         std::string pathStr = WideToString(processPath.c_str());
 
@@ -256,35 +265,32 @@ private:
         LogToConsole("Reason: " + reason, "RED");
 
         std::string message = "Wraith AI detected unauthorized process!\n\n";
-        //message += "Reason: " + reason + "\n";
         message += "Process: " + pathStr + "\n\n";
-        //message += "Only whitelisted applications from legitimate locations are allowed.\n\n";
         message += "The game will now close.";
 
-        SendWebhookAsync("**" + GetPlayerName() + " (" + GetHWID() + ")" + "** has had an unauthorized process running, terminating game.\n**Process:** `"+pathStr.c_str()+"` | **Reason:** `"+reason.c_str()+"`");
+        SendWebhookAsync("**" + GetPlayerName() + " (" + GetHWID() + ")" + "** has had an unauthorized process running, terminating game.\n**Process:** `" + pathStr.c_str() + "` | **Reason:** `" + reason.c_str() + "`");
 
+        // Delayed termination
         std::thread([]() {
-            Sleep(5000);  // 5 seconds to read the message
+            Sleep(5000);
             TerminateProcess(GetCurrentProcess(), 1);
             }).detach();
 
-        SetForegroundWindow(GetDesktopWindow());  // Force focus switch
+        SetForegroundWindow(GetDesktopWindow());
         MessageBoxA(NULL, message.c_str(), "Wraith AI - Detection", MB_OK | MB_ICONERROR | MB_SYSTEMMODAL | MB_SETFOREGROUND);
-
-        std::wstring path;
-        path.assign(pathStr.begin(), pathStr.end());
-        // reason.assign(modPathStr.begin(), modPathStr.end());
 
         MessageBoxA(NULL, message.c_str(), "Wraith AI - Detection", MB_OK | MB_ICONERROR | MB_TOPMOST);
 
         ReportSuspiciousProcess(processPath);
     }
 
+    // Check if process was already scanned this session
     bool HasProcessBeenScanned(DWORD pid) {
         std::wstring pidStr = std::to_wstring(pid);
         return scannedProcesses.find(pidStr) != scannedProcesses.end();
     }
 
+    // Mark process as scanned to avoid duplicate checks
     void MarkProcessAsScanned(DWORD pid) {
         std::wstring pidStr = std::to_wstring(pid);
         scannedProcesses.insert(pidStr);
@@ -295,13 +301,16 @@ public:
         InitializeWhitelist();
     }
 
+    // Scan all running processes
     void ScanProcesses() {
         LogToConsole("\n--- Starting Process Scan ---", "CYAN");
 
+        // Get function pointer for process path query
         QFPIN pQueryFullProcessImageName = (QFPIN)GetProcAddress(
             GetModuleHandleW(L"Kernel32.dll"),
             "QueryFullProcessImageNameW");
 
+        // Create process snapshot
         HANDLE hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
         if (hProcessSnap == INVALID_HANDLE_VALUE) {
             LogToConsole("ERROR: Failed to create process snapshot!", "RED");
@@ -326,14 +335,14 @@ public:
             while (Process32NextW(hProcessSnap, &pe32)) {
                 processCount++;
 
-                // Skip if already scanned this session
+                // Skip already scanned processes
                 if (HasProcessBeenScanned(pe32.th32ProcessID)) {
                     continue;
                 }
 
                 std::string procNameStr = WideToString(pe32.szExeFile);
 
-                // Skip whitelisted system processes by name
+                // Check whitelist first
                 if (IsWhitelistedProcess(pe32.szExeFile)) {
                     LogToConsole("[OK - WHITELISTED] " + procNameStr, "GREEN");
                     whitelistedCount++;
@@ -341,7 +350,7 @@ public:
                     continue;
                 }
 
-                // Token beállítás
+                // Adjust process token for access
                 HANDLE process = OpenProcess(TOKEN_ADJUST_PRIVILEGES,
                     FALSE, pe32.th32ProcessID);
                 if (process) {
@@ -349,7 +358,7 @@ public:
                     CloseHandle(process);
                 }
 
-                // Process handle megszerzése
+                // Open process handle
                 HANDLE pHandle = NULL;
                 if (pQueryFullProcessImageName != NULL) {
                     pHandle = OpenProcess(
@@ -365,6 +374,7 @@ public:
                 if (pHandle != NULL) {
                     wchar_t processpath[MAX_PATH] = { 0 };
 
+                    // Get full process path
                     if (pQueryFullProcessImageName != NULL) {
                         DWORD size = MAX_PATH;
                         pQueryFullProcessImageName(pHandle, 0, processpath, &size);
@@ -414,7 +424,7 @@ public:
                         return;
                     }
 
-                    // Check 4: Fileless
+                    // Check 4: Fileless execution
                     DWORD err = GetLastError();
                     if (err == ERROR_FILE_INVALID || !DoesFileExist(fullPath)) {
                         LogToConsole("[BLOCKED - FILELESS] " + procNameStr + " -> " + fullPathStr, "RED");
@@ -437,6 +447,7 @@ public:
 
         CloseHandle(hProcessSnap);
 
+        // Log scan summary
         LogToConsole("--- Scan Complete ---", "CYAN");
         LogToConsole("Total Processes: " + std::to_string(processCount), "");
         LogToConsole("Whitelisted: " + std::to_string(whitelistedCount), "GREEN");
@@ -444,6 +455,7 @@ public:
         LogToConsole("Suspicious: " + std::to_string(suspiciousCount), "RED");
     }
 
+    // Start continuous monitoring thread
     void StartMonitoring() {
         AdjustTokens(GetCurrentProcess());
         isRunning = true;
@@ -477,6 +489,7 @@ public:
         scanThread.detach();
     }
 
+    // Stop monitoring and cleanup
     void StopMonitoring() {
         isRunning = false;
         if (consoleAllocated) {
@@ -487,10 +500,12 @@ public:
 
 static CProcessScanner g_ProcessScanner;
 
+// Public API to start process scanning
 void StartProcessScanning() {
     g_ProcessScanner.StartMonitoring();
 }
 
+// Public API to stop process scanning
 void StopProcessScanning() {
     g_ProcessScanner.StopMonitoring();
 }

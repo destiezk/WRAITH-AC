@@ -1,4 +1,4 @@
-// ai_dll_detector.cpp - WORKING VERSION
+// ai_dll_detector.cpp - AI-powered DLL detection implementation
 #include "main.h"
 #include "ai_dll_detector.h"
 #include "dll_feature_extractor.h"
@@ -8,9 +8,10 @@
 #include <windows.h>
 #include <filesystem>
 
-// Declare external HINSTANCE (defined in main.cpp)
+// Global module instance from main.cpp
 extern HINSTANCE g_hInstance;
 
+// Confidence threshold for malicious classification (99.95%)
 static const float DETECTION_THRESHOLD = 0.9995f;
 
 AIDllDetector::AIDllDetector()
@@ -20,13 +21,13 @@ AIDllDetector::AIDllDetector()
 AIDllDetector::~AIDllDetector() {
 }
 
+// Load the ONNX model from embedded resource
 bool AIDllDetector::InitializeFromResource() {
     try {
         std::cout << "[AI] Attempting to load model from embedded resource..." << std::endl;
 
-        // Use global HINSTANCE from DllMain
+        // Get module handle
         HMODULE hModule = g_hInstance;
-
         if (!hModule) {
             std::cerr << "[AI] ERROR: g_hInstance is NULL! Make sure it's set in DllMain." << std::endl;
             return false;
@@ -34,6 +35,7 @@ bool AIDllDetector::InitializeFromResource() {
 
         std::cout << "[AI] Module handle: " << hModule << std::endl;
 
+        // Find the model resource
         HRSRC hRes = FindResource(hModule, MAKEINTRESOURCE(IDR_AI_MODEL), RT_RCDATA);
         if (!hRes) {
             DWORD error = GetLastError();
@@ -43,12 +45,14 @@ bool AIDllDetector::InitializeFromResource() {
 
         std::cout << "[AI] Resource found!" << std::endl;
 
+        // Load the resource into memory
         HGLOBAL hData = LoadResource(hModule, hRes);
         if (!hData) {
             std::cerr << "[AI] ERROR: LoadResource failed!" << std::endl;
             return false;
         }
 
+        // Get pointer to model data
         void* pModelData = LockResource(hData);
         DWORD modelSize = SizeofResource(hModule, hRes);
 
@@ -59,12 +63,15 @@ bool AIDllDetector::InitializeFromResource() {
             return false;
         }
 
+        // Initialize ONNX Runtime environment
         m_env = std::make_unique<Ort::Env>(ORT_LOGGING_LEVEL_WARNING, "DllDetector");
 
+        // Configure session options
         Ort::SessionOptions sessionOptions;
         sessionOptions.SetIntraOpNumThreads(1);
         sessionOptions.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_BASIC);
 
+        // Create inference session from memory
         m_session = std::make_unique<Ort::Session>(*m_env, pModelData, modelSize, sessionOptions);
 
         m_initialized = true;
@@ -88,6 +95,7 @@ bool AIDllDetector::InitializeFromResource() {
     }
 }
 
+// Analyze a DLL and determine if it's suspicious
 bool AIDllDetector::IsSuspicious(const std::string& dllPath) {
     if (!m_initialized) {
         std::cerr << "[AI] Model not initialized!" << std::endl;
@@ -95,17 +103,21 @@ bool AIDllDetector::IsSuspicious(const std::string& dllPath) {
     }
 
     try {
+        // Extract features from the DLL
         DllFeatures features = DllFeatureExtractor::ExtractFeatures(dllPath);
 
+        // Get filename for fingerprint check
         std::filesystem::path p(dllPath);
         std::string filename = p.filename().string();
 
+        // Check if DLL matches trusted fingerprint
         if (IsTrustedByFingerprint(filename, features)) {
             std::cout << "[FINGERPRINT] " << filename << " matches trusted signature - ALLOWED" << std::endl;
             m_lastConfidence = 0.0f;
             return false;
         }
 
+        // Debug: Print raw features
         std::cout << "[DEBUG] Raw features for: " << dllPath << std::endl;
         std::cout << "  fileSize: " << features.fileSize << std::endl;
         std::cout << "  numSections: " << features.numSections << std::endl;
@@ -118,6 +130,7 @@ bool AIDllDetector::IsSuspicious(const std::string& dllPath) {
         std::cout << "  suspiciousAPICount: " << features.suspiciousAPICount << std::endl;
         std::cout << "  entropy: " << features.entropy << std::endl;
 
+        // Normalize features for model input
         std::vector<float> inputData = {
             features.fileSize / 10000000.0f,
             features.numSections / 10.0f,
@@ -131,32 +144,39 @@ bool AIDllDetector::IsSuspicious(const std::string& dllPath) {
             features.entropy / 8.0f
         };
 
+        // Debug: Print normalized features
         std::cout << "[DEBUG] Normalized features:" << std::endl;
         std::cout << "  [" << inputData[0] << ", " << inputData[1] << ", " << inputData[2] << ", "
             << inputData[3] << ", " << inputData[4] << ", " << inputData[5] << ", "
             << inputData[6] << ", " << inputData[7] << ", " << inputData[8] << ", "
             << inputData[9] << "]" << std::endl;
 
+        // Create input tensor
         std::vector<int64_t> inputShape = { 1, 10 };
         auto memoryInfo = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
         Ort::Value inputTensor = Ort::Value::CreateTensor<float>(
             memoryInfo, inputData.data(), inputData.size(),
             inputShape.data(), inputShape.size());
 
+        // Define input/output names
         const char* inputNames[] = { "float_input" };
         const char* outputNames[] = { "label", "probabilities" };
 
+        // Run inference
         auto outputTensors = m_session->Run(
             Ort::RunOptions{ nullptr },
             inputNames, &inputTensor, 1,
             outputNames, 2);
 
+        // Get prediction results
         int64_t* prediction = outputTensors[0].GetTensorMutableData<int64_t>();
         float* probabilities = outputTensors[1].GetTensorMutableData<float>();
 
+        // Store confidence score (probability of being malicious)
         m_lastConfidence = probabilities[1];
         std::cout << "[DEBUG] Probabilities: [" << probabilities[0] << ", " << probabilities[1] << "]" << std::endl;
 
+        // Check if confidence exceeds threshold
         bool isSuspicious = (m_lastConfidence >= DETECTION_THRESHOLD);
 
         std::cout << "[AI] DLL: " << dllPath << " | Prediction: "
@@ -176,6 +196,7 @@ bool AIDllDetector::IsSuspicious(const std::string& dllPath) {
     }
 }
 
+// Get the confidence score from last prediction
 float AIDllDetector::GetLastConfidence() const {
     return m_lastConfidence;
 }

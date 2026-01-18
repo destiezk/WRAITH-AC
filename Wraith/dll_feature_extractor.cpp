@@ -1,17 +1,18 @@
-// dll_feature_extractor.cpp - FIXED VERSION
+// dll_feature_extractor.cpp - Extract analyzable features from DLL files
 #include "main.h"
 #include "Discord.h"
 #include "dll_feature_extractor.h"
 #include "webhook_sender.h"
 #include <set>
 
+// Calculate Shannon entropy of data block (measures randomness/encryption)
 float DllFeatureExtractor::CalculateEntropy(LPVOID data, DWORD size) {
     if (!data || size == 0) return 0.0f;
 
     int freq[256] = { 0 };
     BYTE* bytes = (BYTE*)data;
 
-    // Count byte frequencies (sample first 10KB)
+    // Count byte frequencies (sample first 10KB for performance)
     DWORD sampleSize = (size < 10000) ? size : 10000;
     for (DWORD i = 0; i < sampleSize; i++) {
         freq[bytes[i]]++;
@@ -19,7 +20,6 @@ float DllFeatureExtractor::CalculateEntropy(LPVOID data, DWORD size) {
 
     // Calculate Shannon entropy
     float entropy = 0.0f;
-
     for (int i = 0; i < 256; i++) {
         if (freq[i] > 0) {
             float p = (float)freq[i] / sampleSize;
@@ -30,10 +30,11 @@ float DllFeatureExtractor::CalculateEntropy(LPVOID data, DWORD size) {
     return entropy;
 }
 
-// Helper function to convert RVA to file offset
+// Convert relative virtual address (RVA) to file offset
 DWORD RvaToFileOffset(PIMAGE_NT_HEADERS ntHeaders, DWORD rva, LPVOID lpBase) {
     PIMAGE_SECTION_HEADER section = IMAGE_FIRST_SECTION(ntHeaders);
 
+    // Search for section containing the RVA
     for (int i = 0; i < ntHeaders->FileHeader.NumberOfSections; i++, section++) {
         if (rva >= section->VirtualAddress &&
             rva < section->VirtualAddress + section->SizeOfRawData) {
@@ -41,14 +42,15 @@ DWORD RvaToFileOffset(PIMAGE_NT_HEADERS ntHeaders, DWORD rva, LPVOID lpBase) {
         }
     }
 
-    // If not in any section, assume it's already a file offset
+    // Not in any section, assume it's already a file offset
     return rva;
 }
 
+// Count suspicious API imports commonly used by cheats/malware
 int DllFeatureExtractor::CountSuspiciousAPIs(LPVOID lpBase, PIMAGE_NT_HEADERS ntHeaders) {
     int suspiciousCount = 0;
 
-    // List of suspicious API names commonly used by cheats/malware
+    // APIs commonly used for memory manipulation, hooking, and process injection
     static const std::set<std::string> suspiciousAPIs = {
         "CreateRemoteThread",
         "WriteProcessMemory",
@@ -74,6 +76,7 @@ int DllFeatureExtractor::CountSuspiciousAPIs(LPVOID lpBase, PIMAGE_NT_HEADERS nt
     };
 
     try {
+        // Get import directory
         DWORD importRVA = ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
         if (importRVA == 0) return 0;
 
@@ -81,11 +84,12 @@ int DllFeatureExtractor::CountSuspiciousAPIs(LPVOID lpBase, PIMAGE_NT_HEADERS nt
         DWORD importOffset = RvaToFileOffset(ntHeaders, importRVA, lpBase);
         PIMAGE_IMPORT_DESCRIPTOR importDesc = (PIMAGE_IMPORT_DESCRIPTOR)((BYTE*)lpBase + importOffset);
 
+        // Iterate through imported DLLs
         while (importDesc->Name != 0) {
-            // Get the import name table
             PIMAGE_THUNK_DATA thunk = nullptr;
             DWORD thunkRVA = 0;
 
+            // Get import name table
             if (importDesc->OriginalFirstThunk) {
                 thunkRVA = importDesc->OriginalFirstThunk;
             }
@@ -97,6 +101,7 @@ int DllFeatureExtractor::CountSuspiciousAPIs(LPVOID lpBase, PIMAGE_NT_HEADERS nt
                 DWORD thunkOffset = RvaToFileOffset(ntHeaders, thunkRVA, lpBase);
                 thunk = (PIMAGE_THUNK_DATA)((BYTE*)lpBase + thunkOffset);
 
+                // Iterate through imported functions
                 while (thunk && thunk->u1.AddressOfData != 0) {
                     // Check if import is by name (not ordinal)
                     if (!(thunk->u1.Ordinal & IMAGE_ORDINAL_FLAG)) {
@@ -106,6 +111,7 @@ int DllFeatureExtractor::CountSuspiciousAPIs(LPVOID lpBase, PIMAGE_NT_HEADERS nt
                         PIMAGE_IMPORT_BY_NAME importByName = (PIMAGE_IMPORT_BY_NAME)((BYTE*)lpBase + nameOffset);
                         std::string apiName = (char*)importByName->Name;
 
+                        // Check if API is suspicious
                         if (suspiciousAPIs.find(apiName) != suspiciousAPIs.end()) {
                             suspiciousCount++;
                         }
@@ -123,9 +129,11 @@ int DllFeatureExtractor::CountSuspiciousAPIs(LPVOID lpBase, PIMAGE_NT_HEADERS nt
     return suspiciousCount;
 }
 
+// Extract all features from a DLL file
 DllFeatures DllFeatureExtractor::ExtractFeatures(const std::string& dllPath) {
     DllFeatures features = {};
 
+    // Open the DLL file
     HANDLE hFile = CreateFileA(dllPath.c_str(), GENERIC_READ,
         FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
@@ -133,15 +141,18 @@ DllFeatures DllFeatureExtractor::ExtractFeatures(const std::string& dllPath) {
         return features;
     }
 
+    // Get file size
     DWORD fileSize = GetFileSize(hFile, NULL);
     features.fileSize = static_cast<float>(fileSize);
 
+    // Create file mapping
     HANDLE hMapping = CreateFileMappingA(hFile, NULL, PAGE_READONLY, 0, 0, NULL);
     if (!hMapping) {
         CloseHandle(hFile);
         return features;
     }
 
+    // Map file into memory
     LPVOID lpBase = MapViewOfFile(hMapping, FILE_MAP_READ, 0, 0, 0);
     if (!lpBase) {
         CloseHandle(hMapping);
@@ -150,22 +161,24 @@ DllFeatures DllFeatureExtractor::ExtractFeatures(const std::string& dllPath) {
     }
 
     try {
-        // Parse PE headers
+        // Parse DOS header
         PIMAGE_DOS_HEADER dosHeader = (PIMAGE_DOS_HEADER)lpBase;
 
         if (dosHeader->e_magic == IMAGE_DOS_SIGNATURE) {
+            // Parse NT headers
             PIMAGE_NT_HEADERS ntHeaders = (PIMAGE_NT_HEADERS)((BYTE*)lpBase + dosHeader->e_lfanew);
 
             if (ntHeaders->Signature == IMAGE_NT_SIGNATURE) {
+                // Extract basic PE information
                 features.numSections = static_cast<float>(ntHeaders->FileHeader.NumberOfSections);
                 features.entryPointRVA = static_cast<float>(ntHeaders->OptionalHeader.AddressOfEntryPoint);
                 features.imageBase = static_cast<float>(ntHeaders->OptionalHeader.ImageBase);
 
-                // Check for debug info and TLS
+                // Check for debug info and thread local storage
                 features.hasDebugInfo = (ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG].Size > 0) ? 1.0f : 0.0f;
                 features.hasTLS = (ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].Size > 0) ? 1.0f : 0.0f;
 
-                // Count imports
+                // Count imported DLLs
                 DWORD importRVA = ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
                 if (importRVA != 0) {
                     DWORD importOffset = RvaToFileOffset(ntHeaders, importRVA, lpBase);
@@ -176,7 +189,7 @@ DllFeatures DllFeatureExtractor::ExtractFeatures(const std::string& dllPath) {
                     }
                 }
 
-                // Count exports
+                // Count exported functions
                 DWORD exportRVA = ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress;
                 if (exportRVA != 0) {
                     DWORD exportOffset = RvaToFileOffset(ntHeaders, exportRVA, lpBase);
@@ -184,10 +197,10 @@ DllFeatures DllFeatureExtractor::ExtractFeatures(const std::string& dllPath) {
                     features.numExports = static_cast<float>(exportDir->NumberOfFunctions);
                 }
 
-                // Count suspicious APIs
+                // Count suspicious API imports
                 features.suspiciousAPICount = static_cast<float>(CountSuspiciousAPIs(lpBase, ntHeaders));
 
-                // Calculate entropy
+                // Calculate file entropy
                 features.entropy = CalculateEntropy(lpBase, fileSize);
             }
         }
@@ -196,10 +209,10 @@ DllFeatures DllFeatureExtractor::ExtractFeatures(const std::string& dllPath) {
         // Return partial features on error
     }
 
+    // Clean up
     UnmapViewOfFile(lpBase);
     CloseHandle(hMapping);
     CloseHandle(hFile);
 
     return features;
 }
-
