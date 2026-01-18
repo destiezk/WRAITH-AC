@@ -132,6 +132,7 @@ static void SendDllFeaturesToWebhook(const std::string& dllPath) {
 
     // Send both messages
     SendWebhookAsync2(FASZ.c_str());
+    Sleep(100);
     SendWebhookAsync2(structFormat.c_str());
 }
 

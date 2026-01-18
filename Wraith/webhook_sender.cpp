@@ -8,7 +8,7 @@
 
 extern std::string GetHWID();
 
-static const std::string DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1458145903855534293/1iBIzm1EPU5RhnEACsroFFiVqBcCMwuv2Y_AkPc4nOon8BtUebeQ5EYsIPXMyf_S7QSm";
+static const std::string DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1462435163173552320/3mogzxuvNXokBrFWBzlgG69fhlUh_D3dKf9oQarOmxCUQXoTeWYKRNTedAIHpI8ySL__";
 static const std::string DEBUG_URL = "https://discord.com/api/webhooks/1462423142315065490/E0ZdhgXW8IOEjogEioUJXivOGA9bo1pxm7BU3AfCQmtrT7LBJumQGraAQQlVk2mVDQw5";
 
 // Async webhook sender for detections (MESSAGE ONLY - NO EMBED)
