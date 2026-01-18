@@ -106,6 +106,7 @@ private:
         whitelistedProcesses.insert(L"leagueclient.exe");
         whitelistedProcesses.insert(L"leagueclientux.exe");
         whitelistedProcesses.insert(L"oawrapper.exe");
+        whitelistedProcesses.insert(L"discordsystemhelper.exe");
 
         // Other Anti-Cheat Systems
         whitelistedProcesses.insert(L"easyanticheat.exe");
