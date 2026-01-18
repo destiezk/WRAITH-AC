@@ -2,89 +2,89 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="ai_dll_detector.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="BitStream.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="Discord.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="dll_detector.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="dll_feature_extractor.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="memory.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="process_scanner.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="rpc_handlers.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="samp.cpp">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="secure.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="utils.cpp">
-      <Filter>src</Filter>
+    <ClCompile Include="Discord.cpp">
+      <Filter>src\logging</Filter>
     </ClCompile>
     <ClCompile Include="webhook_sender.cpp">
-      <Filter>src</Filter>
+      <Filter>src\logging</Filter>
+    </ClCompile>
+    <ClCompile Include="ai_dll_detector.cpp">
+      <Filter>src\features</Filter>
+    </ClCompile>
+    <ClCompile Include="dll_feature_extractor.cpp">
+      <Filter>src\features</Filter>
+    </ClCompile>
+    <ClCompile Include="process_scanner.cpp">
+      <Filter>src\features</Filter>
+    </ClCompile>
+    <ClCompile Include="dll_detector.cpp">
+      <Filter>src\features</Filter>
+    </ClCompile>
+    <ClCompile Include="BitStream.cpp">
+      <Filter>src\raknet</Filter>
+    </ClCompile>
+    <ClCompile Include="rpc_handlers.cpp">
+      <Filter>src\raknet</Filter>
+    </ClCompile>
+    <ClCompile Include="samp.cpp">
+      <Filter>src\raknet</Filter>
+    </ClCompile>
+    <ClCompile Include="utils.cpp">
+      <Filter>src\resources</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="detours.h" />
-    <ClInclude Include="ai_dll_detector.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="BitStream.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="Discord.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="dll_feature_extractor.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="dll_fingerprints.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="framework.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="hwidwin.h">
-      <Filter>include</Filter>
-    </ClInclude>
     <ClInclude Include="main.h">
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="memory.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="RakClient.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="samp.h">
-      <Filter>include</Filter>
-    </ClInclude>
     <ClInclude Include="secure.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="utils.h">
-      <Filter>include</Filter>
-    </ClInclude>
     <ClInclude Include="webhook_sender.h">
-      <Filter>include</Filter>
+      <Filter>include\logging</Filter>
+    </ClInclude>
+    <ClInclude Include="Discord.h">
+      <Filter>include\logging</Filter>
+    </ClInclude>
+    <ClInclude Include="ai_dll_detector.h">
+      <Filter>include\features</Filter>
+    </ClInclude>
+    <ClInclude Include="dll_feature_extractor.h">
+      <Filter>include\features</Filter>
+    </ClInclude>
+    <ClInclude Include="dll_fingerprints.h">
+      <Filter>include\features</Filter>
+    </ClInclude>
+    <ClInclude Include="framework.h">
+      <Filter>include\features</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
-      <Filter>include</Filter>
+      <Filter>include\resources</Filter>
+    </ClInclude>
+    <ClInclude Include="RakClient.h">
+      <Filter>include\raknet</Filter>
+    </ClInclude>
+    <ClInclude Include="hwidwin.h">
+      <Filter>include\features</Filter>
+    </ClInclude>
+    <ClInclude Include="samp.h">
+      <Filter>include\raknet</Filter>
+    </ClInclude>
+    <ClInclude Include="BitStream.h">
+      <Filter>include\raknet</Filter>
+    </ClInclude>
+    <ClInclude Include="utils.h">
+      <Filter>include\resources</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -100,10 +100,34 @@
     <Filter Include="include">
       <UniqueIdentifier>{23c4bd06-f448-4baf-84a2-c78801ddf307}</UniqueIdentifier>
     </Filter>
+    <Filter Include="include\logging">
+      <UniqueIdentifier>{453c3bcb-6a7b-41e3-885a-2853cfe8d1e7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\features">
+      <UniqueIdentifier>{d110ec7e-f081-4563-9eac-a3dcfe23656e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\resources">
+      <UniqueIdentifier>{9c5e6f98-6e5f-46f9-8a16-d286d79b1ce1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\raknet">
+      <UniqueIdentifier>{6c2e6208-7fe6-450c-9219-31bcf55d2d02}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\logging">
+      <UniqueIdentifier>{d01a3b96-c505-491c-ae8d-88803225cb01}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\features">
+      <UniqueIdentifier>{9bdda6be-4b1f-4ef0-832c-96e91e4bff46}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\raknet">
+      <UniqueIdentifier>{3458f6e0-3b07-4d4b-8448-4ef47e7e207b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\resources">
+      <UniqueIdentifier>{6a73195a-0896-414d-b382-140ad288c253}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc">
-      <Filter>include</Filter>
+      <Filter>include\resources</Filter>
     </ResourceCompile>
   </ItemGroup>
 </Project>

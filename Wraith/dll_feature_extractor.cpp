@@ -1,6 +1,8 @@
 // dll_feature_extractor.cpp - FIXED VERSION
 #include "main.h"
+#include "Discord.h"
 #include "dll_feature_extractor.h"
+#include "webhook_sender.h"
 #include <set>
 
 float DllFeatureExtractor::CalculateEntropy(LPVOID data, DWORD size) {
@@ -200,3 +202,4 @@ DllFeatures DllFeatureExtractor::ExtractFeatures(const std::string& dllPath) {
 
     return features;
 }
+

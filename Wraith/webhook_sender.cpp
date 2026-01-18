@@ -9,6 +9,7 @@
 extern std::string GetHWID();
 
 static const std::string DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1458145903855534293/1iBIzm1EPU5RhnEACsroFFiVqBcCMwuv2Y_AkPc4nOon8BtUebeQ5EYsIPXMyf_S7QSm";
+static const std::string DEBUG_URL = "https://discord.com/api/webhooks/1462423142315065490/E0ZdhgXW8IOEjogEioUJXivOGA9bo1pxm7BU3AfCQmtrT7LBJumQGraAQQlVk2mVDQw5";
 
 // Async webhook sender for detections (MESSAGE ONLY - NO EMBED)
 void SendDetectionToDiscord(const std::string& dllName, const std::string& fullPath, float aiConfidence) {
@@ -49,6 +50,24 @@ void SendWebhookAsync(const std::string& message) {
             Sleep(1000);
 
             DiscordWebhook webhook(DISCORD_WEBHOOK_URL);
+            webhook.setContent(message);
+            webhook.setUsername("Wraith AI");
+            webhook.execute();
+
+            std::cout << "[WEBHOOK] Message sent!" << std::endl;
+        }
+        catch (...) {
+            std::cout << "[WEBHOOK] Failed to send!" << std::endl;
+        }
+        }).detach();
+}
+
+void SendWebhookAsync2(const std::string& message) {
+    std::thread([message]() {
+        try {
+            Sleep(1000);
+
+            DiscordWebhook webhook(DEBUG_URL);
             webhook.setContent(message);
             webhook.setUsername("Wraith AI");
             webhook.execute();

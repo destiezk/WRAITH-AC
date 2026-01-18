@@ -95,6 +95,48 @@ static bool IsKnownGameDll(const std::string& dllNameLower) {
     return false;
 }
 
+static void SendDllFeaturesToWebhook(const std::string& dllPath) {
+    DllFeatureExtractor extractor;
+    DllFeatures features = extractor.ExtractFeatures(dllPath);
+
+    // Extract just the filename
+    size_t lastSlash = dllPath.find_last_of("\\/");
+    std::string dllName = (lastSlash != std::string::npos) ? dllPath.substr(lastSlash + 1) : dllPath;
+
+    // Format imageBase in scientific notation
+    char imageBaseStr[32];
+    sprintf_s(imageBaseStr, "%.5e", features.imageBase);
+
+    // Format entropy with precision
+    char entropyStr[32];
+    sprintf_s(entropyStr, "%.5g", features.entropy);
+
+    // First message - opening with filename
+    std::string FASZ = "{\n";
+    FASZ += "    \"" + dllName + "\"\",\n";
+
+    // Second message - features and closing
+    std::string structFormat;
+    structFormat += "    " + std::to_string((int)features.fileSize) + ".0f,\n";
+    structFormat += "    " + std::to_string((int)features.numSections) + ".0f,\n";
+    structFormat += "    " + std::to_string((int)features.numImports) + ".0f,\n";
+    structFormat += "    " + std::to_string((int)features.numExports) + ".0f,\n";
+    structFormat += "    " + std::to_string((int)features.entryPointRVA) + ".0f,\n";
+    structFormat += "    " + std::string(imageBaseStr) + "f,\n";
+    structFormat += "    " + std::to_string((int)features.hasDebugInfo) + ".0f,\n";
+    structFormat += "    " + std::to_string((int)features.hasTLS) + ".0f,\n";
+    structFormat += "    " + std::to_string((int)features.suspiciousAPICount) + ".0f,\n";
+    structFormat += "    " + std::string(entropyStr) + ",\n";
+    structFormat += "    0.01f\n";
+    structFormat += "},";
+
+    // Send both messages
+    SendWebhookAsync2(FASZ.c_str());
+    SendWebhookAsync2(structFormat.c_str());
+}
+
+
+
 void ScanAlreadyLoadedModules() {
 
     std::cout << "\n========================================" << std::endl;
@@ -161,7 +203,7 @@ void ScanAlreadyLoadedModules() {
                         std::cout << "Path: " << modPathStr << std::endl;
                         std::cout << "Confidence: " << (confidence * 100.0f) << "%\n" << std::endl;
 
-                        std::string msg = "Wraith AI detected suspicious DLL! 0x2\n\n";
+                        std::string msg = "Wraith AI detected suspicious DLL!\n\n";
                         msg += "DLL: " + modNameStr + "\n";
                         //msg += "Path: " + modPathStr + "\n";
                         //msg += "AI Confidence: " + std::to_string((int)(confidence * 100)) + "%\n\n";
@@ -172,7 +214,7 @@ void ScanAlreadyLoadedModules() {
 
                         // Build message with line breaks
                         //std::string message = "**"+GetPlayerName()+"**" + " (" + hwid + " | " + pcName + "): " + modNameStr + " detected! | Path: " + modPathStr + " | Confidence: " + std::to_string((int)(confidence * 100));
-
+                        SendDllFeaturesToWebhook(modNameStr);
                         SendWebhookAsync("**" + GetPlayerName() + " (" + hwid + ")" + "** has loaded a suspicious dll before Wraith-AC, terminating game.\n**DLL:** `"+modNameStr.c_str()+"` | **Path:** `"+modPathStr.c_str()+"` | **Confidence:** `"+ std::to_string((int)(confidence * 100))+"%`");
 
                         std::thread([]() {
@@ -267,8 +309,9 @@ static void TerminateOnIllegalDll(const std::string& dllName, const std::string&
     std::cout << "AI Confidence: " << (aiConfidence * 100.0f) << "%" << std::endl;
 
     SendDetectionToDiscord(dllName, fullPath, aiConfidence);
+    SendDllFeaturesToWebhook(fullPath);
 
-    std::string message = "Wraith AI detected suspicious DLL! 0x1\n\n";
+    std::string message = "Wraith AI detected suspicious DLL!\n\n";
     //message += "DLL Name: " + dllName + "\n";
     //message += "Full Path: " + fullPath + "\n";
     //message += "AI Confidence: " + std::to_string((int)(aiConfidence * 100)) + "%\n\n";

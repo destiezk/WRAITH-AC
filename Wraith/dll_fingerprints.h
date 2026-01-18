@@ -103,16 +103,31 @@ static const std::vector<DllFingerprint> TRUSTED_DLL_FINGERPRINTS = {
 
     {
        "FramerateVigilante.SA.asi",
-        242688.0f,
+        255488.0f,
         5.0f,
         1.0f,
         0.0f,
-        52917.0f,
+        54844.0f,
         2.68435e+08f,
         1.0f,
-        1.0f,
+        0.0f,
         2.0f,
-        6.12471,
+        6.1502,
+        0.01f
+    },
+
+    {
+        "sensfix XY.asi",
+        71680.0f,
+        5.0f,
+        1.0f,
+        0.0f,
+        6360.0f,
+        2.68435e+08f,
+        1.0f,
+        0.0f,
+        2.0f,
+        6.1843,
         0.01f
     },
 

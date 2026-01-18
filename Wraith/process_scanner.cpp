@@ -78,6 +78,7 @@ private:
         whitelistedProcesses.insert(L"msedge.exe");
         whitelistedProcesses.insert(L"opera.exe");
         whitelistedProcesses.insert(L"brave.exe");
+		whitelistedProcesses.insert(L"nvoawrappercache.exe");
 
         // Communication Apps
         whitelistedProcesses.insert(L"discord.exe");
@@ -85,6 +86,7 @@ private:
         whitelistedProcesses.insert(L"teamspeak3.exe");
         whitelistedProcesses.insert(L"slack.exe");
         whitelistedProcesses.insert(L"telegram.exe");
+        whitelistedProcesses.insert(L"medal.exe");
 
         // Media Players
         whitelistedProcesses.insert(L"spotify.exe");
@@ -174,6 +176,14 @@ private:
         if (lower.find(L"\\steamapps\\") != std::wstring::npos) return true;
         if (lower.find(L"\\epic games\\") != std::wstring::npos) return true;
         if (lower.find(L"\\origin games\\") != std::wstring::npos) return true;
+        if (lower.find(L"\\riot games\\") != std::wstring::npos) return true;
+
+		// Common AppData Locations
+        if (lower.find(L"\\appdata\\local\\discord\\") != std::wstring::npos) return true;
+        if (lower.find(L"\\appdata\\local\\mozilla firefox\\") != std::wstring::npos) return true;
+        if (lower.find(L"\\appdata\\local\\programs\\opera gx\\") != std::wstring::npos) return true;
+        if (lower.find(L"\\appdata\\local\\programs\\opera\\") != std::wstring::npos) return true;
+
 
         // Cloud Storage AppData Locations - ADDED!
         if (lower.find(L"\\microsoft\\onedrive\\") != std::wstring::npos) return true;
