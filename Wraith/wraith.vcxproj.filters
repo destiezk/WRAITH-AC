@@ -38,6 +38,9 @@
     <ClCompile Include="utils.cpp">
       <Filter>src\resources</Filter>
     </ClCompile>
+    <ClCompile Include="memory_scanner.cpp">
+      <Filter>src\features</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="detours.h" />
@@ -85,6 +88,9 @@
     </ClInclude>
     <ClInclude Include="utils.h">
       <Filter>include\resources</Filter>
+    </ClInclude>
+    <ClInclude Include="memory_scanner.h">
+      <Filter>include\features</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

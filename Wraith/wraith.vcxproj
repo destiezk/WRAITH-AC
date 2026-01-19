@@ -177,6 +177,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="memory.cpp" />
+    <ClCompile Include="memory_scanner.cpp" />
     <ClCompile Include="process_scanner.cpp" />
     <ClCompile Include="rpc_handlers.cpp" />
     <ClCompile Include="samp.cpp" />
@@ -195,6 +196,7 @@
     <ClInclude Include="hwidwin.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="memory.h" />
+    <ClInclude Include="memory_scanner.h" />
     <ClInclude Include="RakClient.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="samp.h" />

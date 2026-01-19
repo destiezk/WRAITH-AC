@@ -7,6 +7,7 @@
 #include "Discord.h"
 #include "webhook_sender.h"
 #include "utils.h"
+#include "memory_scanner.h"
 
 namespace fs = std::filesystem;
 using namespace std;
@@ -16,6 +17,8 @@ extern bool RPC(int uniqueID, BitStream* bitStream, PacketPriority priority,
 extern std::string WideToString(const wchar_t* wstr);
 extern std::string GetHWID();
 
+
+MemoryScanner g_memScanner;
 // ============================
 // CONSOLE LOGGING
 // ============================
@@ -576,6 +579,7 @@ void InstallLoadLibraryHooks() {
 
 // Initialize anti-cheat system
 void StartLoadLibraryDetectionAndWorker() {
+    //InitializeConsole();
     std::cout << "\n[INIT] Starting Anti-Cheat AI..." << std::endl;
 
     g_aiDetector = std::make_unique<AIDllDetector>();
@@ -599,6 +603,9 @@ void StartLoadLibraryDetectionAndWorker() {
 
     // Install hooks
     InstallLoadLibraryHooks();
+
+    g_memScanner.TakeSnapshot();  // Take snapshot of current memory
+    g_memScanner.StartMonitoring();  // Start checking for new regions
 
     std::cout << "\n[READY] Anti-Cheat AI is now active!\n" << std::endl;
 }
