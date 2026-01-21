@@ -100,7 +100,7 @@ void SendMemoryAlertToDiscord(LPVOID address, SIZE_T size) {
             }
 
             // Get current HWID or player info if available
-            // std::string hwid = GetHWID();  // If you have this function
+            // std::string hwid = GetHWID();  
 
             // Build detailed message
             std::string message = "**Memory Injection Detected - " + GetPlayerName() + "**\n\n";
