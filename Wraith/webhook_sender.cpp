@@ -103,7 +103,7 @@ void SendMemoryAlertToDiscord(LPVOID address, SIZE_T size) {
             // std::string hwid = GetHWID();  // If you have this function
 
             // Build detailed message
-            std::string message = "**Memory Injection Detected - " + GetPlayerName() + "**\n\n";
+            std::string message = "**Memory Injection Detected - " + GetPlayerName() + " (" + GetHWID() + ")**\n\n";
             message += "**Address:** `0x" + std::to_string((uintptr_t)address) + "`\n";
             message += "**Size:** `" + std::to_string(size / 1024) + " KB` (" + std::to_string(size) + " bytes)\n";
             message += "**Type:** Private Executable Memory\n";

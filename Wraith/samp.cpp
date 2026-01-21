@@ -57,7 +57,7 @@ bool SAMPFramework::tryInit(void)
 	ts.dwBoxColor = 50;
 	ts.byteFlags = 1;
 
-	CreateTextDraw(1337, &ts, "wraithclient v1.0.3");
+	CreateTextDraw(1337, &ts, "wraithclient v1.0.4-1");
 
 	isInited = true;
 

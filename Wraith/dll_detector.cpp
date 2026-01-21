@@ -581,7 +581,7 @@ void InstallLoadLibraryHooks() {
 
 // Initialize anti-cheat system
 void StartLoadLibraryDetectionAndWorker() {
-    InitializeConsole();
+    //InitializeConsole();
     std::cout << "\n[INIT] Starting Anti-Cheat AI..." << std::endl;
 
     g_aiDetector = std::make_unique<AIDllDetector>();
