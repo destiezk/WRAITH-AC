@@ -1,6 +1,6 @@
 # Wraith AntiCheat Client for GTA:SA:MP
 
-A high‑performance anti‑cheat client for GTA:SA:MP (SAMP/RakClient) focused on detecting unauthorized DLL injections, suspicious memory regions, and malicious processes in real time. The system combines traditional hook‑based detection with a C++17 inference engine running ONNX machine learning models against loaded modules and in‑memory artifacts. [web:56][web:67]
+A high‑performance anti‑cheat client for GTA:SA:MP (SAMP/RakClient) focused on detecting unauthorized DLL injections, suspicious memory regions, and malicious processes in real time. The system combines traditional hook‑based detection with a C++17 inference engine running ONNX machine learning models against loaded modules and in‑memory artifacts.
 
 ---
 
@@ -21,10 +21,10 @@ A high‑performance anti‑cheat client for GTA:SA:MP (SAMP/RakClient) focused 
 ## Features
 
 - **Machine Learning Inference**  
-  Uses an ONNX model (e.g. `dll_detector.onnx`) to classify DLLs and modules based on static structural features such as PE metadata and section statistics. [web:56]
+  Uses an ONNX model (e.g. `dll_detector.onnx`) to classify DLLs and modules based on static structural features such as PE metadata and section statistics. 
 
 - **Real‑time API Hooking**  
-  Intercepts critical loading APIs (e.g. `LoadLibraryA/W` family) via a hooking library (such as Detours) to inspect every newly loaded module before it executes. [web:53]
+  Intercepts critical loading APIs (e.g. `LoadLibraryA/W` family) via a hooking library (such as Detours) to inspect every newly loaded module before it executes. 
 
 - **SAMP / RakClient Integration**  
   Tailored for GTA:SA:MP multiplayer environments with support for RakClient and game‑specific RPC handlers for reporting and control.
@@ -33,7 +33,7 @@ A high‑performance anti‑cheat client for GTA:SA:MP (SAMP/RakClient) focused 
   Sends structured, optionally obfuscated detection reports directly to Discord channels using webhook endpoints, avoiding the need for a custom backend.
 
 - **Memory Region Monitoring**  
-  Takes a baseline snapshot of process memory regions at startup and flags newly created, large executable private regions that typically indicate manual‑mapped DLLs or injected shellcode. [web:56][web:67]
+  Takes a baseline snapshot of process memory regions at startup and flags newly created, large executable private regions that typically indicate manual‑mapped DLLs or injected shellcode.
 
 - **Process & Module Scanning**  
   Periodically iterates through modules in the game process to detect hidden, unlinked, or suspiciously modified components.
@@ -83,11 +83,11 @@ The project is organized as a modular C++17 codebase.
 ### Detection Pipeline
 
 1. **Initialization**  
-   - On injection/start, the client initializes the ONNX runtime, loads the model, and installs hooks on module loading APIs. [web:53][web:56]  
-   - A memory baseline is taken: the entire virtual address space of the process is walked and all existing regions are stored as trusted. [web:56][web:67]
+   - On injection/start, the client initializes the ONNX runtime, loads the model, and installs hooks on module loading APIs.  
+   - A memory baseline is taken: the entire virtual address space of the process is walked and all existing regions are stored as trusted. 
 
 2. **Event Interception**  
-   - When a DLL is loaded through hooked APIs, the file is passed to the feature extractor for PE‑level analysis. [web:53]  
+   - When a DLL is loaded through hooked APIs, the file is passed to the feature extractor for PE‑level analysis.  
    - In parallel, a background thread periodically rescans memory and checks for newly created regions that do not exist in the baseline.
 
 3. **Feature Extraction & Inference**  
@@ -102,9 +102,9 @@ The project is organized as a modular C++17 codebase.
 
 ### Memory Region Monitoring
 
-- A snapshot of all memory regions (base address + size) is recorded once the game and anti‑cheat are fully initialized. [web:56][web:67]  
+- A snapshot of all memory regions (base address + size) is recorded once the game and anti‑cheat are fully initialized. 
 - Every few seconds, the scanner walks memory again; any region not present in the snapshot is considered “new.”  
-- Only new regions that are **private, committed, executable, and larger than a safe threshold** (e.g. 64 KB) are treated as highly suspicious, which strongly correlates with manual‑mapped DLLs or large injected code buffers. [web:56][web:67]
+- Only new regions that are **private, committed, executable, and larger than a safe threshold** (e.g. 64 KB) are treated as highly suspicious, which strongly correlates with manual‑mapped DLLs or large injected code buffers.
 
 ---
 
@@ -184,7 +184,7 @@ The project is organized as a modular C++17 codebase.
   - Simple XOR or similar schemes can be applied to outgoing payloads before they are sent to Discord, making captured traffic less human‑readable.
 
 - **Baseline‑based Memory Defense**  
-  - New, large executable private regions are treated as strong indicators of manual mapping or runtime code injection, complementing API‑level hook detection. [web:56][web:67]
+  - New, large executable private regions are treated as strong indicators of manual mapping or runtime code injection, complementing API‑level hook detection. 
 
 ---
 
