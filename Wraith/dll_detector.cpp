@@ -1,5 +1,4 @@
-﻿// dll_detector.cpp - Runtime DLL detection with AI analysis
-#include "main.h"
+﻿#include "main.h"
 #include "ai_dll_detector.h"
 #include "Discord.h"
 #include "webhook_sender.h"
@@ -207,7 +206,7 @@ void ScanAlreadyLoadedModules() {
                         std::cout << "[CHECKING AI] Unknown game folder DLL: " << modNameStr << std::endl;
                     }
 
-                    // Run AI detection
+                    // run AI detection
                     if (g_aiDetector && g_aiDetector->IsSuspicious(modPathStr)) {
                         float confidence = g_aiDetector->GetLastConfidence();
 

@@ -29,7 +29,6 @@ private:
 
     bool alertShown;
 
-    // ADD THIS [web:95]
     bool DumpSuspiciousRegion(LPVOID address, SIZE_T size, std::string& outFilename);
 
     static DWORD WINAPI MonitorThread(LPVOID param);

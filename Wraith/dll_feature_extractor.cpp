@@ -1,4 +1,3 @@
-// dll_feature_extractor.cpp - Extract analyzable features from DLL files
 #include "main.h"
 #include "Discord.h"
 #include "dll_feature_extractor.h"

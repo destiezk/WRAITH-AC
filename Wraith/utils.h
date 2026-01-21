@@ -10,11 +10,11 @@ inline std::string WraithJSON(const std::string& input) {
 
     for (char c : input) {
         switch (c) {
-        case '\\': output += "\\\\"; break;  // Backslash
-        case '\"': output += "\\\""; break;  // Quote
-        case '\n': output += "\\n"; break;   // Newline
-        case '\r': output += "\\r"; break;   // Carriage return
-        case '\t': output += "\\t"; break;   // Tab
+        case '\\': output += "\\\\"; break;  
+        case '\"': output += "\\\""; break;  
+        case '\n': output += "\\n"; break;   
+        case '\r': output += "\\r"; break;   
+        case '\t': output += "\\t"; break;   
         default:   output += c; break;
         }
     }

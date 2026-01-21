@@ -15,7 +15,6 @@ MemoryScanner::~MemoryScanner() {
     StopMonitoring();
 }
 
-// ADD THIS NEW FUNCTION [web:95]
 bool MemoryScanner::DumpSuspiciousRegion(LPVOID address, SIZE_T size, std::string& outFilename) {
     // Create dumps directory
     CreateDirectoryA("wraith_dumps", NULL);
@@ -33,7 +32,7 @@ bool MemoryScanner::DumpSuspiciousRegion(LPVOID address, SIZE_T size, std::strin
 
     outFilename = filename;
 
-    // Dump memory to file [web:95]
+    // Dump memory to file 
     std::ofstream file(filename, std::ios::binary);
     if (!file.is_open()) {
         std::cout << "[DUMP] Failed to create dump file!" << std::endl;
@@ -111,7 +110,6 @@ bool MemoryScanner::CheckForNewRegions() {
                 std::cout << "  Address: 0x" << std::hex << mbi.BaseAddress << std::dec << std::endl;
                 std::cout << "  Size: " << (mbi.RegionSize / 1024) << " KB" << std::endl;
 
-                // SEND DIRECTLY TO DISCORD (no local save) [web:95]
                 //SendMemoryAlertToDiscord(mbi.BaseAddress, mbi.RegionSize);
                 SendMemoryAlertToDiscord(mbi.BaseAddress, mbi.RegionSize);
                 std::cout << "  Status: Sending to Discord..." << std::endl;
@@ -142,13 +140,11 @@ DWORD WINAPI MemoryScanner::MonitorThread(LPVOID param) {
 
                 std::cout << "[MEMORY] Detection confirmed, closing in 5 seconds..." << std::endl;
 
-                // Countdown and terminate in detached thread [web:95]
                 std::thread([]() {
-                    Sleep(4000);  // Wait 5 seconds
+                    Sleep(4000); 
                     TerminateProcess(GetCurrentProcess(), 1);
                     }).detach();
 
-                // Show messagebox (non-blocking)
                 MessageBoxA(NULL,
                     "Wraith-AC detected code injection!\n\nGame will close in 5 seconds.",
                     "Wraith-AC - Code Injection Detected",
