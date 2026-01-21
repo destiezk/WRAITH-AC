@@ -1,6 +1,6 @@
 # Wraith AntiCheat Client for GTA:SA:MP
 
-A high‑performance anti‑cheat client for GTA:SA:MP (SAMP/RakClient) focused on detecting unauthorized DLL injections, suspicious memory regions, and malicious processes in real time. The system combines traditional hook‑based detection with a C++17 inference engine running ONNX machine learning models against loaded modules and in‑memory artifacts.
+A high‑performance anti‑cheat client for GTA:SA:MP (SAMP) focused on detecting unauthorized DLL injections, suspicious memory regions, and malicious processes in real time. The system combines traditional hook‑based detection with a C++17 inference engine running ONNX machine learning models against loaded modules and in‑memory artifacts.
 
 ---
 
