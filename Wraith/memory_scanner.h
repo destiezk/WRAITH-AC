@@ -1,6 +1,7 @@
 #pragma once
 #include <windows.h>
 #include <set>
+#include <string>
 
 struct MemorySnapshot {
     LPVOID address;
@@ -13,8 +14,8 @@ struct MemorySnapshot {
 
 class MemoryScanner {
 public:
-    MemoryScanner();   // <-- ADD THIS
-    ~MemoryScanner();  // <-- ADD THIS
+    MemoryScanner();
+    ~MemoryScanner();
 
     void TakeSnapshot();
     bool CheckForNewRegions();
@@ -25,6 +26,11 @@ private:
     std::set<MemorySnapshot> snapshot;
     bool running;
     HANDLE thread;
+
+    bool alertShown;
+
+    // ADD THIS [web:95]
+    bool DumpSuspiciousRegion(LPVOID address, SIZE_T size, std::string& outFilename);
 
     static DWORD WINAPI MonitorThread(LPVOID param);
 };

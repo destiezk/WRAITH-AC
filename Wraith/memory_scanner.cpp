@@ -1,14 +1,69 @@
 #include "main.h"
 #include "memory_scanner.h"
+#include "webhook_sender.h"
 #include <iostream>
+#include <fstream>
+#include <sstream>
 
 MemoryScanner::MemoryScanner() {
     running = false;
+    alertShown = false;
     thread = NULL;
 }
 
 MemoryScanner::~MemoryScanner() {
     StopMonitoring();
+}
+
+// ADD THIS NEW FUNCTION [web:95]
+bool MemoryScanner::DumpSuspiciousRegion(LPVOID address, SIZE_T size, std::string& outFilename) {
+    // Create dumps directory
+    CreateDirectoryA("wraith_dumps", NULL);
+
+    // Generate filename with timestamp and address
+    SYSTEMTIME st;
+    GetLocalTime(&st);
+
+    char filename[MAX_PATH];
+    sprintf_s(filename, "wraith_dumps/region_0x%p_%04d%02d%02d_%02d%02d%02d_%dKB.bin",
+        address,
+        st.wYear, st.wMonth, st.wDay,
+        st.wHour, st.wMinute, st.wSecond,
+        (int)(size / 1024));
+
+    outFilename = filename;
+
+    // Dump memory to file [web:95]
+    std::ofstream file(filename, std::ios::binary);
+    if (!file.is_open()) {
+        std::cout << "[DUMP] Failed to create dump file!" << std::endl;
+        return false;
+    }
+
+    // Write memory contents
+    file.write((char*)address, size);
+    file.close();
+
+    std::cout << "[DUMP] Saved to: " << filename << std::endl;
+
+    // Also create metadata file
+    std::string metaFilename = filename;
+    metaFilename += ".txt";
+
+    std::ofstream meta(metaFilename);
+    if (meta.is_open()) {
+        meta << "Wraith-AC Memory Dump\n";
+        meta << "=====================\n";
+        meta << "Address: 0x" << std::hex << address << std::dec << "\n";
+        meta << "Size: " << (size / 1024) << " KB (" << size << " bytes)\n";
+        meta << "Timestamp: " << st.wYear << "-" << st.wMonth << "-" << st.wDay
+            << " " << st.wHour << ":" << st.wMinute << ":" << st.wSecond << "\n";
+        meta << "Type: Private Executable Memory\n";
+        meta << "Detection: New region after baseline\n";
+        meta.close();
+    }
+
+    return true;
 }
 
 void MemoryScanner::TakeSnapshot() {
@@ -40,32 +95,30 @@ bool MemoryScanner::CheckForNewRegions() {
         current.size = mbi.RegionSize;
 
         if (snapshot.find(current) == snapshot.end()) {
-
-            // Check if executable [web:56]
             bool isExecutable = (mbi.Protect & PAGE_EXECUTE) ||
                 (mbi.Protect & PAGE_EXECUTE_READ) ||
                 (mbi.Protect & PAGE_EXECUTE_READWRITE) ||
                 (mbi.Protect & PAGE_EXECUTE_WRITECOPY);
 
             if (isExecutable && mbi.Type == MEM_PRIVATE && mbi.State == MEM_COMMIT) {
-
-                // IGNORE small allocations (< 64KB) - these are trampolines/stubs [web:67]
                 if (mbi.RegionSize < 65536) {
-                    snapshot.insert(current);  // Add to snapshot and ignore
+                    snapshot.insert(current);
                     address = (BYTE*)mbi.BaseAddress + mbi.RegionSize;
                     continue;
                 }
 
-                // Large executable private memory = INJECTED CODE! [web:56][web:67]
                 std::cout << "\n*** [INJECTED CODE DETECTED] ***" << std::endl;
                 std::cout << "  Address: 0x" << std::hex << mbi.BaseAddress << std::dec << std::endl;
                 std::cout << "  Size: " << (mbi.RegionSize / 1024) << " KB" << std::endl;
-                std::cout << "  Type: PRIVATE EXECUTABLE (CHEAT!)" << std::endl;
 
-                return true;  // CHEAT DETECTED
+                // SEND DIRECTLY TO DISCORD (no local save) [web:95]
+                //SendMemoryAlertToDiscord(mbi.BaseAddress, mbi.RegionSize);
+                SendMemoryAlertToDiscord(mbi.BaseAddress, mbi.RegionSize);
+                std::cout << "  Status: Sending to Discord..." << std::endl;
+
+                return true;
             }
 
-            // Not suspicious, add to snapshot [web:67]
             snapshot.insert(current);
         }
 
@@ -84,15 +137,23 @@ DWORD WINAPI MemoryScanner::MonitorThread(LPVOID param) {
         Sleep(5000);
 
         if (scanner->CheckForNewRegions()) {
-            MessageBoxA(NULL,
-                "Wraith-AC detected code injection!\n\n"
-                "New executable memory region detected.\n"
-                "This indicates manual mapping or shellcode.\n\n"
-                "Game will close.",
-                "Wraith-AC - Code Injection Detected",
-                MB_OK | MB_ICONERROR);
+            if (!scanner->alertShown) {
+                scanner->alertShown = true;
 
-            TerminateProcess(GetCurrentProcess(), 1);
+                std::cout << "[MEMORY] Detection confirmed, closing in 5 seconds..." << std::endl;
+
+                // Countdown and terminate in detached thread [web:95]
+                std::thread([]() {
+                    Sleep(4000);  // Wait 5 seconds
+                    TerminateProcess(GetCurrentProcess(), 1);
+                    }).detach();
+
+                // Show messagebox (non-blocking)
+                MessageBoxA(NULL,
+                    "Wraith-AC detected code injection!\n\nGame will close in 5 seconds.",
+                    "Wraith-AC - Code Injection Detected",
+                    MB_OK | MB_ICONERROR);
+            }
         }
     }
 

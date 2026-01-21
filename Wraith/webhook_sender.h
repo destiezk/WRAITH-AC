@@ -8,3 +8,4 @@ void SendDetectionToDiscord(const std::string& dllName, const std::string& fullP
 // Send simple message to Discord
 void SendWebhookAsync(const std::string& message);
 void SendWebhookAsync2(const std::string& message);
+void SendMemoryAlertToDiscord(LPVOID address, SIZE_T size);

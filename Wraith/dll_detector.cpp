@@ -1,13 +1,15 @@
 ﻿// dll_detector.cpp - Runtime DLL detection with AI analysis
 #include "main.h"
 #include "ai_dll_detector.h"
-#include <Psapi.h>
-#include <iostream>
-#pragma comment(lib, "Psapi.lib")
 #include "Discord.h"
 #include "webhook_sender.h"
 #include "utils.h"
 #include "memory_scanner.h"
+
+#pragma comment(lib, "Psapi.lib")
+
+#include <Psapi.h>
+#include <iostream>
 
 namespace fs = std::filesystem;
 using namespace std;
@@ -19,6 +21,7 @@ extern std::string GetHWID();
 
 
 MemoryScanner g_memScanner;
+
 // ============================
 // CONSOLE LOGGING
 // ============================
@@ -579,7 +582,7 @@ void InstallLoadLibraryHooks() {
 
 // Initialize anti-cheat system
 void StartLoadLibraryDetectionAndWorker() {
-    //InitializeConsole();
+    InitializeConsole();
     std::cout << "\n[INIT] Starting Anti-Cheat AI..." << std::endl;
 
     g_aiDetector = std::make_unique<AIDllDetector>();
