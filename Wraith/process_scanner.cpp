@@ -190,6 +190,8 @@ private:
         if (lower.find(L"\\appdata\\local\\mozilla firefox\\") != std::wstring::npos) return true;
         if (lower.find(L"\\appdata\\local\\programs\\opera gx\\") != std::wstring::npos) return true;
         if (lower.find(L"\\appdata\\local\\programs\\opera\\") != std::wstring::npos) return true;
+        if (lower.find(L"\\appdata\\local\\medal\\") != std::wstring::npos) return true;
+        //C:\Users\Korisnik\AppData\Local\Medal\recorder - 3.1150.0\MedalEncoder.exe
 
         // Cloud Storage
         if (lower.find(L"\\microsoft\\onedrive\\") != std::wstring::npos) return true;
