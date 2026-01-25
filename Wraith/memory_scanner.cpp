@@ -112,7 +112,7 @@ bool MemoryScanner::CheckForNewRegions() {
 
                 //SendMemoryAlertToDiscord(mbi.BaseAddress, mbi.RegionSize);
                 SendMemoryAlertToDiscord(mbi.BaseAddress, mbi.RegionSize);
-                std::cout << "  Status: Sending to Discord..." << std::endl;
+                std::cout << "  Status: Sending to Discord...." << std::endl;
 
                 return true;
             }
